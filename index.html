@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Website Inventory</title>
     
-    <!-- PWA / Mobile App Settings -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,7 +12,6 @@
     <link rel="icon" type="image/png" href="logo.png">
     <link rel="apple-touch-icon" href="logo.png">
     
-    <!-- Base64 Manifest for PWA -->
     <link rel="manifest" id="manifest-placeholder">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -78,7 +76,6 @@
         });
     </script>
 
-    <!-- LOGIN OVERLAY -->
     <div id="loginOverlay" class="fixed inset-0 z-[100] bg-gray-900 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative">
             <div class="bg-green-600 h-2"></div>
@@ -108,7 +105,6 @@
         </div>
     </div>
 
-    <!-- PREVIEW MODAL -->
     <div id="imagePreviewModal" class="fixed inset-0 z-[150] bg-black/95 hidden flex items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeImagePreview(event)">
         <button onclick="closeImagePreview(null, true)" class="absolute top-5 right-5 z-[160] text-white/80 hover:text-white bg-gray-800/50 hover:bg-gray-700/80 rounded-full w-10 h-10 flex items-center justify-center transition-all backdrop-blur-md border border-white/10 shadow-lg">
             <i class="fa-solid fa-times text-xl"></i>
@@ -119,7 +115,6 @@
         </div>
     </div>
 
-    <!-- HEADER -->
     <div class="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-3 py-3">
             <div class="flex justify-between items-start mb-3">
@@ -172,12 +167,13 @@
         </div>
     </div>
 
-    <!-- MAIN BODY -->
     <div class="max-w-full mx-auto px-4 py-4">
+        
         <div id="statsBar" class="hidden flex justify-between items-center mb-4 max-w-7xl mx-auto">
             <h2 class="text-lg font-bold text-gray-700">Inventory</h2>
             <div class="flex items-center gap-2">
                 <select id="sortFilter" class="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-green-500 bg-white text-gray-700 h-8">
+                    <option value="STATUS_ACTIVE">Status: Active First</option>
                     <option value="CREATED_AT:true" selected>Date, new to old</option>
                     <option value="CREATED_AT:false">Date, old to new</option>
                     <option value="TITLE:false">Alphabetically, A-Z</option>
@@ -189,6 +185,18 @@
                 </select>
                 <div class="text-xs text-gray-500 bg-white px-2 py-1 rounded border h-8 flex items-center">Count: <span id="productCount" class="font-bold text-black ml-1">0</span></div>
             </div>
+        </div>
+
+        <div id="adminBulkBar" class="hidden mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex justify-between items-center max-w-7xl mx-auto">
+            <div class="flex items-center gap-3">
+                <p class="text-xs font-bold text-red-600 uppercase"><i class="fa-solid fa-screwdriver-wrench mr-1"></i> Admin Tools</p>
+                <button onclick="autoSelectZeroStock()" class="text-[10px] bg-white border border-red-200 text-gray-700 px-3 py-1.5 rounded hover:bg-red-100 transition-colors font-semibold">
+                    1. Select Empty Active
+                </button>
+            </div>
+            <button id="zeroDraftBtn" onclick="executeZeroDraft()" class="bg-red-600 text-white text-[10px] font-bold px-4 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
+                2. Zero Draft (<span id="selectedCount">0</span>)
+            </button>
         </div>
 
         <div id="initialState" class="text-center py-24">
@@ -219,7 +227,6 @@
         </div>
     </div>
 
-    <!-- UPDATED MODAL (With Reset All Button) -->
     <div id="variantModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 flex flex-col max-h-[90vh]">
             <div class="bg-gray-50 px-5 py-3 border-b flex justify-between items-center flex-shrink-0">
@@ -239,6 +246,26 @@
                 <div class="flex gap-2">
                     <button id="saveBtn" onclick="saveInventoryChanges('main')" class="px-4 py-2 bg-black text-white text-xs font-bold uppercase rounded hover:bg-gray-800 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
                         <span id="saveBtnText">Update</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmationModal" class="fixed inset-0 z-[210] bg-black/90 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-100 animate-slide-down">
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Are you sure?</h3>
+                <p id="confirmMsg" class="text-sm text-gray-600 mb-6">This action cannot be undone.</p>
+                <div class="flex gap-3">
+                    <button onclick="closeConfirmModal()" class="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button onclick="finalizeZeroDraft()" class="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 shadow-md transition-transform active:scale-95">
+                        Yes, Confirm
                     </button>
                 </div>
             </div>
@@ -324,113 +351,112 @@
 
         function logout() { localStorage.removeItem('storeUser'); location.reload(); }
 
-        // --- IMPROVED INVENTORY UPDATE (ADMIN CAN FIX BRANCHES + RESET ALL) ---
+        // --- INVENTORY UPDATE LOGIC ---
         async function saveInventoryChanges(type, specificVariantId = null, specificStore = null) {
-    if (!currentEditingProductId) return;
+            if (!currentEditingProductId) return;
 
-    let btn = document.getElementById('saveBtn');
-    const closeBtn = document.getElementById('modalCloseBtn');
-    const cancelBtn = document.getElementById('modalCancelBtn');
+            let btn = document.getElementById('saveBtn');
+            const closeBtn = document.getElementById('modalCloseBtn');
+            const cancelBtn = document.getElementById('modalCancelBtn');
 
-    if (type === 'branch') {
-        btn = document.querySelector(`button[onclick="saveInventoryChanges('branch', '${specificVariantId}', '${specificStore}')"]`);
-    } else if (type === 'reset_all') {
-        btn = document.querySelector(`button[onclick="saveInventoryChanges('reset_all', '${specificVariantId}')"]`);
-    }
+            if (type === 'branch') {
+                btn = document.querySelector(`button[onclick="saveInventoryChanges('branch', '${specificVariantId}', '${specificStore}')"]`);
+            } else if (type === 'reset_all') {
+                btn = document.querySelector(`button[onclick="saveInventoryChanges('reset_all', '${specificVariantId}')"]`);
+            }
 
-    const originalText = btn.innerHTML;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            if (closeBtn) closeBtn.disabled = true;
+            if (cancelBtn) cancelBtn.disabled = true;
 
-    btn.disabled = true;
-    if (closeBtn) closeBtn.disabled = true;
-    if (cancelBtn) cancelBtn.disabled = true;
+            btn.innerHTML = `<span class="mr-2">Processing</span> <i class="fa-solid fa-circle-notch fa-spin"></i>`;
 
-    btn.innerHTML = `<span class="mr-2">Processing</span> <i class="fa-solid fa-circle-notch fa-spin"></i>`;
+            try {
+                const product = products.find(p => p.id == currentEditingProductId);
+                let updates = [];
 
-    try {
-        const product = products.find(p => p.id == currentEditingProductId);
-        let updates = [];
+                if (type === 'main') {
+                    const inputs = document.querySelectorAll('#modalVariantsContainer input.main-input');
+                    inputs.forEach(input => {
+                        const variantId = input.getAttribute('data-variant-id');
+                        const inventoryItemId = input.getAttribute('data-inventory-item-id');
+                        const newQty = parseInt(input.value) || 0;
+                        const variant = product.variants.find(v => v.id == variantId);
+                        variant.inventory[currentStore] = newQty;
 
-        if (type === 'main') {
-            const inputs = document.querySelectorAll('#modalVariantsContainer input.main-input');
-            inputs.forEach(input => {
-                const variantId = input.getAttribute('data-variant-id');
-                const inventoryItemId = input.getAttribute('data-inventory-item-id');
-                const newQty = parseInt(input.value) || 0;
-                const variant = product.variants.find(v => v.id == variantId);
-                variant.inventory[currentStore] = newQty;
+                        updates.push({
+                            productId: product.id,
+                            variantId: variantId,
+                            inventoryItemId: inventoryItemId,
+                            store: currentStore,
+                            quantity: newQty,
+                            action: 'updateInventory',
+                            collectionName: currentCollectionName
+                        });
+                    });
+                } else if (type === 'branch') {
+                    const input = document.getElementById(`fix-${specificStore}-${specificVariantId}`);
+                    const newQty = parseInt(input.value) || 0;
+                    const variant = product.variants.find(v => v.id == specificVariantId);
+                    variant.inventory[specificStore] = newQty;
 
-                updates.push({
-                    productId: product.id,
-                    variantId: variantId,
-                    inventoryItemId: inventoryItemId,
-                    store: currentStore,
-                    quantity: newQty,
-                    action: 'updateInventory',
-                    collectionName: currentCollectionName
-                });
-            });
-        } else if (type === 'branch') {
-            const input = document.getElementById(`fix-${specificStore}-${specificVariantId}`);
-            const newQty = parseInt(input.value) || 0;
-            const variant = product.variants.find(v => v.id == specificVariantId);
-            variant.inventory[specificStore] = newQty;
+                    updates.push({
+                        productId: product.id,
+                        variantId: specificVariantId,
+                        inventoryItemId: variant.inventoryItemId,
+                        store: specificStore,
+                        quantity: newQty,
+                        action: 'updateInventory',
+                        collectionName: currentCollectionName
+                    });
+                } else if (type === 'reset_all') {
+                    const stores = ['dhanmondi', 'banani', 'uttara'];
+                    const variant = product.variants.find(v => v.id == specificVariantId);
 
-            updates.push({
-                productId: product.id,
-                variantId: specificVariantId,
-                inventoryItemId: variant.inventoryItemId,
-                store: specificStore,
-                quantity: newQty,
-                action: 'updateInventory',
-                collectionName: currentCollectionName
-            });
-        } else if (type === 'reset_all') {
-            const stores = ['dhanmondi', 'banani', 'uttara'];
-            const variant = product.variants.find(v => v.id == specificVariantId);
+                    stores.forEach(store => {
+                        variant.inventory[store] = 0;
+                        const input = document.getElementById(`fix-${store}-${specificVariantId}`);
+                        if (input) input.value = 0;
 
-            stores.forEach(store => {
-                variant.inventory[store] = 0;
-                const input = document.getElementById(`fix-${store}-${specificVariantId}`);
-                if (input) input.value = 0;
+                        updates.push({
+                            productId: product.id,
+                            variantId: specificVariantId,
+                            inventoryItemId: variant.inventoryItemId,
+                            store: store,
+                            quantity: 0,
+                            action: 'updateInventory',
+                            collectionName: currentCollectionName
+                        });
+                    });
+                }
 
-                updates.push({
-                    productId: product.id,
-                    variantId: specificVariantId,
-                    inventoryItemId: variant.inventoryItemId,
-                    store: store,
-                    quantity: 0,
-                    action: 'updateInventory',
-                    collectionName: currentCollectionName
-                });
-            });
+                const promises = updates.map(payload => fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                }));
+                await Promise.all(promises);
+
+                if (type === 'branch') {
+                    showToast(`${specificStore} Updated!`);
+                } else if (type === 'reset_all') {
+                    showToast("All Branches Reset to 0!");
+                } else {
+                    closeModal();
+                    renderProducts();
+                    showToast("Successfully Updated!");
+                }
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('errorModal').classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                if (closeBtn) closeBtn.disabled = false;
+                if (cancelBtn) cancelBtn.disabled = false;
+            }
         }
-
-        const promises = updates.map(payload => fetch(WEB_APP_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        }));
-        await Promise.all(promises);
-
-        if (type === 'branch') {
-            showToast(`${specificStore} Updated!`);
-        } else if (type === 'reset_all') {
-            showToast("All Branches Reset to 0!");
-        } else {
-            closeModal();
-            renderProducts();
-            showToast("Successfully Updated!");
-        }
-
-    } catch (error) {
-        console.error(error);
-        document.getElementById('errorModal').classList.remove('hidden');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-        if (closeBtn) closeBtn.disabled = false;
-        if (cancelBtn) cancelBtn.disabled = false;
-    }
-}
 
         // --- FETCHING ---
         async function loadInitialData() {
@@ -501,7 +527,9 @@
             } else { document.querySelector('#loadMoreContainer button').innerText = "Loading..."; }
 
             try {
-                const sortValue = document.getElementById('sortFilter').value;
+                let sortValue = document.getElementById('sortFilter').value;
+                if (sortValue === 'STATUS_ACTIVE') sortValue = 'CREATED_AT:true';
+
                 const [sortKey, reverse] = sortValue.split(':');
                 let url = `${WEB_APP_URL}?action=searchProducts`;
                 if(query) url += `&query=${encodeURIComponent(query)}`;
@@ -564,6 +592,7 @@
             document.getElementById('emptyState').classList.add('hidden');
             document.getElementById('loadMoreContainer').classList.add('hidden');
             document.getElementById('initialState').classList.remove('hidden');
+            document.getElementById('adminBulkBar').classList.add('hidden');
             showToast("Reset");
         }
         function loadMoreProducts() { if (hasMoreProducts && lastCursor) { performSearch(document.getElementById('searchInput').value, selectedCollectionId, lastCursor); } }
@@ -576,18 +605,45 @@
             if(show) { loader.classList.remove('hidden'); if(!lastCursor) { grid.classList.add('hidden'); empty.classList.add('hidden'); stats.classList.add('hidden'); } } else { loader.classList.add('hidden'); }
         }
         
+        // --- RENDER FUNCTION ---
         function renderProducts() {
             const grid = document.getElementById('productGrid');
             const emptyState = document.getElementById('emptyState');
             const statsBar = document.getElementById('statsBar');
             const countSpan = document.getElementById('productCount');
             const loadMoreBtn = document.getElementById('loadMoreContainer');
+            const adminBar = document.getElementById('adminBulkBar');
+
+            const sortVal = document.getElementById('sortFilter').value;
+            if (sortVal === 'STATUS_ACTIVE') {
+                products.sort((a, b) => {
+                    const statusA = (a.status || 'DRAFT').toUpperCase();
+                    const statusB = (b.status || 'DRAFT').toUpperCase();
+                    if (statusA === 'ACTIVE' && statusB !== 'ACTIVE') return -1;
+                    if (statusA !== 'ACTIVE' && statusB === 'ACTIVE') return 1;
+                    return 0; 
+                });
+            }
+
+            if (currentStore === 'admin') {
+                adminBar.classList.remove('hidden');
+            } else {
+                adminBar.classList.add('hidden');
+            }
+
             statsBar.classList.remove('hidden'); grid.innerHTML = ''; countSpan.innerText = products.length;
             if (products.length === 0) { emptyState.classList.remove('hidden'); grid.classList.add('hidden'); loadMoreBtn.classList.add('hidden'); return; } 
             emptyState.classList.add('hidden'); grid.classList.remove('hidden');
+            
             products.forEach(product => {
                 const info = getProductStatus(product);
                 const mainSku = product.variants[0]?.sku || 'N/A';
+                
+                let totalBranchStock = 0;
+                product.variants.forEach(v => {
+                    totalBranchStock += (v.inventory.dhanmondi || 0) + (v.inventory.banani || 0) + (v.inventory.uttara || 0);
+                });
+
                 let variantBreakdownHtml = '';
                 if(product.variants.length > 0) {
                     variantBreakdownHtml = '<div class="flex flex-wrap gap-1 mt-1.5">';
@@ -601,9 +657,21 @@
                     });
                     variantBreakdownHtml += '</div>';
                 }
+
+                let checkboxHtml = '';
+                if (currentStore === 'admin') {
+                    checkboxHtml = `<div class="absolute top-2 left-2 z-10" onclick="event.stopPropagation()">
+                        <input type="checkbox" class="bulk-check w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer shadow-sm" 
+                        data-id="${product.id}" 
+                        data-status="${info.status}" 
+                        data-stock="${totalBranchStock}"
+                        onchange="updateBulkCount()">
+                    </div>`;
+                }
+
                 const card = document.createElement('div');
-                card.className = 'product-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group flex flex-col h-full';
-                card.innerHTML = `<div class="retro-img-container relative" onclick="openImagePreview('${product.image}', '${product.title.replace(/'/g, "\\'")}')"><img src="${product.image}" class="retro-img" onerror="this.src='https://via.placeholder.com/300?text=No+Image'"><div class="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${info.colorClass}">${info.status}</div></div><div class="p-3 flex flex-col flex-grow"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">${product.type || 'Product'}</span><span class="text-[10px] text-gray-400 font-mono">SKU: ${mainSku}</span></div><h3 class="font-bold text-gray-800 text-sm leading-tight mb-2 line-clamp-2">${product.title}</h3><div class="mt-auto"><p class="text-xs text-gray-500 font-semibold">Total: ${info.totalStock}</p>${variantBreakdownHtml}<div class="flex gap-2 mt-3 pt-3 border-t border-gray-100"><button onclick="openModal('${product.id}')" class="flex-1 bg-gray-900 text-white text-xs font-bold uppercase tracking-wide py-2 rounded hover:bg-gray-700 transition-colors">Manage</button></div></div></div>`;
+                card.className = 'product-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group flex flex-col h-full relative';
+                card.innerHTML = `${checkboxHtml}<div class="retro-img-container relative" onclick="openImagePreview('${product.image}', '${product.title.replace(/'/g, "\\'")}')"><img src="${product.image}" class="retro-img" onerror="this.src='https://via.placeholder.com/300?text=No+Image'"><div class="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${info.colorClass}">${info.status}</div></div><div class="p-3 flex flex-col flex-grow"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">${product.type || 'Product'}</span><span class="text-[10px] text-gray-400 font-mono">SKU: ${mainSku}</span></div><h3 class="font-bold text-gray-800 text-sm leading-tight mb-2 line-clamp-2">${product.title}</h3><div class="mt-auto"><p class="text-xs text-gray-500 font-semibold">Total: ${info.totalStock}</p>${variantBreakdownHtml}<div class="flex gap-2 mt-3 pt-3 border-t border-gray-100"><button onclick="openModal('${product.id}')" class="flex-1 bg-gray-900 text-white text-xs font-bold uppercase tracking-wide py-2 rounded hover:bg-gray-700 transition-colors">Manage</button></div></div></div>`;
                 grid.appendChild(card);
             });
             if (hasMoreProducts) { loadMoreBtn.classList.remove('hidden'); } else { loadMoreBtn.classList.add('hidden'); }
@@ -617,7 +685,6 @@
             return { totalStock: totalDisplayStock, status, colorClass };
         }
         
-        // --- UPGRADED MODAL OPENER (With Admin Fix Controls & RESET ALL) ---
         function openModal(productId) {
             const product = products.find(p => p.id == productId);
             if (!product) return;
@@ -636,7 +703,6 @@
                 const stockDisplayHtml = stockLocation.length > 0 ? `<p class="text-[9px] text-green-600 font-bold mt-0.5 uppercase tracking-tight"><i class="fa-solid fa-location-dot mr-1"></i>${stockLocation.join(', ')}</p>` : `<p class="text-[9px] text-gray-400 mt-0.5">No stock in branches</p>`;
                 const stockLabel = currentStore === 'admin' ? 'Global Qty' : 'My Store Qty';
 
-                // --- ADMIN FIX SECTION ---
                 let adminFixHtml = '';
                 if (currentStore === 'admin') {
                     adminFixHtml = `
@@ -714,6 +780,96 @@
             const val = e.target.value;
             if (val.length > 2) { lastCursor = null; searchDebounceTimer = setTimeout(() => { performSearch(val, null); }, 600); }
         });
+
+        // --- BULK ACTION HELPERS ---
+        function updateBulkCount() {
+            const count = document.querySelectorAll('.bulk-check:checked').length;
+            document.getElementById('selectedCount').innerText = count;
+            document.getElementById('zeroDraftBtn').disabled = count === 0;
+        }
+
+        function autoSelectZeroStock() {
+            const checkboxes = document.querySelectorAll('.bulk-check');
+            let found = 0;
+            checkboxes.forEach(box => {
+                const status = box.getAttribute('data-status');
+                const stock = parseInt(box.getAttribute('data-stock'));
+                
+                // Active & No Branch Stock (Stock <= 0)
+                if (status === 'ACTIVE' && stock <= 0) {
+                    box.checked = true;
+                    found++;
+                } else {
+                    box.checked = false;
+                }
+            });
+            updateBulkCount();
+            if(found > 0) showToast(`${found} Empty Active Products Selected`);
+            else showToast("No Empty Active Products Found");
+        }
+
+        // --- UPDATED POPUP LOGIC ---
+        function closeConfirmModal() {
+            document.getElementById('confirmationModal').classList.add('hidden');
+        }
+
+        function executeZeroDraft() {
+            const checkboxes = document.querySelectorAll('.bulk-check:checked');
+            if (checkboxes.length === 0) return;
+
+            const msg = `You are about to Zero & Draft <b>${checkboxes.length} products</b>.<br>This cannot be undone.`;
+            document.getElementById('confirmMsg').innerHTML = msg;
+            document.getElementById('confirmationModal').classList.remove('hidden');
+        }
+
+        async function finalizeZeroDraft() {
+            closeConfirmModal();
+
+            const checkboxes = document.querySelectorAll('.bulk-check:checked');
+            if (checkboxes.length === 0) return;
+
+            const btn = document.getElementById('zeroDraftBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
+
+            let processed = 0;
+
+            for (const box of checkboxes) {
+                const productId = box.getAttribute('data-id');
+                const product = products.find(p => p.id == productId);
+                
+                if (product) {
+                    const updates = product.variants.map(v => ({
+                        productId: product.id,
+                        variantId: v.id,
+                        inventoryItemId: v.inventoryItemId,
+                        store: 'admin', 
+                        quantity: 0,
+                        action: 'updateInventory',
+                        collectionName: 'Bulk-Action'
+                    }));
+
+                    try {
+                        await Promise.all(updates.map(payload => fetch(WEB_APP_URL, {
+                            method: 'POST',
+                            body: JSON.stringify(payload)
+                        })));
+                        processed++;
+                    } catch (e) { console.error(e); }
+                }
+            }
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            
+            // Refresh
+            products = []; 
+            document.getElementById('productGrid').innerHTML = '';
+            performSearch(document.getElementById('searchInput').value, selectedCollectionId);
+            
+            showToast(`Success! ${processed} products updated.`);
+        }
     </script>
 </body>
 </html>
