@@ -351,7 +351,7 @@
 
         function logout() { localStorage.removeItem('storeUser'); location.reload(); }
 
-        // --- INVENTORY UPDATE LOGIC ---
+        // --- INVENTORY UPDATE LOGIC (BATCH MODE) ---
         async function saveInventoryChanges(type, specificVariantId = null, specificStore = null) {
             if (!currentEditingProductId) return;
 
@@ -370,7 +370,7 @@
             if (closeBtn) closeBtn.disabled = true;
             if (cancelBtn) cancelBtn.disabled = true;
 
-            btn.innerHTML = `<span class="mr-2">Processing</span> <i class="fa-solid fa-circle-notch fa-spin"></i>`;
+            btn.innerHTML = `<span class="mr-2">Saving...</span> <i class="fa-solid fa-circle-notch fa-spin"></i>`;
 
             try {
                 const product = products.find(p => p.id == currentEditingProductId);
@@ -383,7 +383,7 @@
                         const inventoryItemId = input.getAttribute('data-inventory-item-id');
                         const newQty = parseInt(input.value) || 0;
                         const variant = product.variants.find(v => v.id == variantId);
-                        variant.inventory[currentStore] = newQty;
+                        variant.inventory[currentStore] = newQty; // Optimistic update (optional)
 
                         updates.push({
                             productId: product.id,
@@ -391,7 +391,6 @@
                             inventoryItemId: inventoryItemId,
                             store: currentStore,
                             quantity: newQty,
-                            action: 'updateInventory',
                             collectionName: currentCollectionName
                         });
                     });
@@ -407,7 +406,6 @@
                         inventoryItemId: variant.inventoryItemId,
                         store: specificStore,
                         quantity: newQty,
-                        action: 'updateInventory',
                         collectionName: currentCollectionName
                     });
                 } else if (type === 'reset_all') {
@@ -425,26 +423,37 @@
                             inventoryItemId: variant.inventoryItemId,
                             store: store,
                             quantity: 0,
-                            action: 'updateInventory',
                             collectionName: currentCollectionName
                         });
                     });
                 }
 
-                const promises = updates.map(payload => fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                }));
-                await Promise.all(promises);
+                if (updates.length > 0) {
+                    const payload = {
+                        action: 'batchUpdateInventory',
+                        updates: updates
+                    };
 
-                if (type === 'branch') {
-                    showToast(`${specificStore} Updated!`);
-                } else if (type === 'reset_all') {
-                    showToast("All Branches Reset to 0!");
-                } else {
-                    closeModal();
-                    renderProducts();
-                    showToast("Successfully Updated!");
+                    const response = await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        if (type === 'branch') {
+                            showToast(`${specificStore} Updated!`);
+                        } else if (type === 'reset_all') {
+                            showToast("All Branches Reset!");
+                        } else {
+                            closeModal();
+                            renderProducts();
+                            showToast("Updated Successfully!");
+                        }
+                    } else {
+                        throw new Error(result.message || 'Update failed');
+                    }
                 }
 
             } catch (error) {
@@ -808,7 +817,7 @@
             else showToast("No Empty Active Products Found");
         }
 
-        // --- UPDATED POPUP LOGIC ---
+        // --- UPDATED POPUP LOGIC (BATCHED) ---
         function closeConfirmModal() {
             document.getElementById('confirmationModal').classList.add('hidden');
         }
@@ -833,42 +842,60 @@
             btn.disabled = true;
             btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
 
-            let processed = 0;
+            let allUpdates = [];
 
             for (const box of checkboxes) {
                 const productId = box.getAttribute('data-id');
                 const product = products.find(p => p.id == productId);
                 
                 if (product) {
-                    const updates = product.variants.map(v => ({
-                        productId: product.id,
-                        variantId: v.id,
-                        inventoryItemId: v.inventoryItemId,
-                        store: 'admin', 
-                        quantity: 0,
-                        action: 'updateInventory',
-                        collectionName: 'Bulk-Action'
-                    }));
+                    // Collect updates for batch processing
+                    product.variants.forEach(v => {
+                        allUpdates.push({
+                            productId: product.id,
+                            variantId: v.id,
+                            inventoryItemId: v.inventoryItemId,
+                            store: 'admin', 
+                            quantity: 0,
+                            action: 'updateInventory',
+                            collectionName: 'Bulk-Action'
+                        });
+                    });
+                }
+            }
 
-                    try {
-                        await Promise.all(updates.map(payload => fetch(WEB_APP_URL, {
-                            method: 'POST',
-                            body: JSON.stringify(payload)
-                        })));
-                        processed++;
-                    } catch (e) { console.error(e); }
+            // Send all updates in ONE batch request
+            if (allUpdates.length > 0) {
+                try {
+                    const payload = {
+                        action: 'batchUpdateInventory',
+                        updates: allUpdates
+                    };
+
+                    const response = await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const result = await response.json();
+
+                    if (result.status === 'success') {
+                        showToast(`Success! ${checkboxes.length} products updated.`);
+                        // Refresh
+                        products = []; 
+                        document.getElementById('productGrid').innerHTML = '';
+                        performSearch(document.getElementById('searchInput').value, selectedCollectionId);
+                    } else {
+                        throw new Error(result.message || "Bulk update failed");
+                    }
+                } catch (e) { 
+                    console.error(e); 
+                    showToast("Error updating items!");
                 }
             }
 
             btn.innerHTML = originalText;
             btn.disabled = false;
-            
-            // Refresh
-            products = []; 
-            document.getElementById('productGrid').innerHTML = '';
-            performSearch(document.getElementById('searchInput').value, selectedCollectionId);
-            
-            showToast(`Success! ${processed} products updated.`);
         }
     </script>
 </body>
