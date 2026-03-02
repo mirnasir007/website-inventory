@@ -159,9 +159,14 @@
                     </div>
                 </div>
                 <button onclick="clearFilters()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center border border-gray-300 transition-colors" title="Reset"><i class="fa-solid fa-rotate-left text-xs"></i></button>
-                <div class="relative flex-1 min-w-0">
-                    <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400 text-xs"></i>
-                    <input type="text" id="searchInput" placeholder="Search..." class="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:border-green-500">
+                <div class="flex-1 min-w-0 flex gap-2">
+                    <div class="relative flex-1 min-w-0">
+                        <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400 text-xs"></i>
+                        <input type="text" id="searchInput" placeholder="Search..." class="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:border-green-500">
+                    </div>
+                    <button onclick="triggerSearchProcess()" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors flex-shrink-0 shadow-sm">
+                        Search
+                    </button>
                 </div>
             </div>
         </div>
@@ -784,11 +789,40 @@
             if(foundId) selectCollection(foundId, collectionTitle);
         }
 
+        // 1. Kono auto-search hobena normal typing e, API call onek save hobe
         document.getElementById('searchInput').addEventListener('input', (e) => {
-            clearTimeout(searchDebounceTimer);
-            const val = e.target.value;
-            if (val.length > 2) { lastCursor = null; searchDebounceTimer = setTimeout(() => { performSearch(val, null); }, 600); }
+            // Box e kisu likhle auto search off, user button e click korbe ba enter dibe
         });
+
+        // 2. Barcode scanner scan korle automatic 'Enter' press hoy, sheta catch korbo
+        document.getElementById('searchInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                triggerSearchProcess(); // Scanner theke scan hole auto search hobe
+            }
+        });
+
+        // 3. Search Button e click korle ba Scanner scan korle ei function cholbe
+        function triggerSearchProcess() {
+            let val = document.getElementById('searchInput').value.trim();
+            if (!val) return;
+
+            // SMART SKU LOGIC (UPDATED): 
+            // 1. Length 7 er boro hote hobe
+            // 2. Kono space thaka jabena (Name e usually space thake)
+            // 3. Shudhu Letter ar Number thakte hobe ebong last e number thakte hobe
+            const isBarcodeFormat = !val.includes(' ') && /^[a-zA-Z0-9]+$/.test(val) && /[0-9]{3}$/.test(val);
+
+            // Shudhu matro Barcode er format match korlei last 4 digit katbe
+            if (val.length > 7 && isBarcodeFormat) {
+                val = val.substring(0, val.length - 4);
+                document.getElementById('searchInput').value = val; 
+            }
+
+            // Search trigger korbe, sathe dropdown filter thakle shetao dhore rakhbe
+            lastCursor = null; 
+            performSearch(val, selectedCollectionId);
+        }
 
         // --- BULK ACTION HELPERS ---
         function updateBulkCount() {
