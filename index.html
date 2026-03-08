@@ -94,7 +94,7 @@
                         <option value="uttara">Uttara Store</option>
                     </select>
                     <div id="passwordFieldWrapper" class="hidden">
-                        <input type="password" id="loginPassword" placeholder="Enter Store Password" class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500">
+                        <input type="password" id="loginPassword" placeholder="Enter Store Password" onkeydown="if(event.key === 'Enter' && !document.getElementById('loginBtn').disabled) attemptLogin()" class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500">
                     </div>
                     <button id="loginBtn" onclick="attemptLogin()" class="w-full bg-gray-900 text-white font-bold py-3 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2" disabled>
                         <span>Access Dashboard</span>
@@ -196,15 +196,21 @@
             </div>
         </div>
 
-        <div id="adminBulkBar" class="hidden mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex justify-between items-center max-w-7xl mx-auto">
-            <div class="flex items-center gap-3">
-                <p class="text-xs font-bold text-red-600 uppercase"><i class="fa-solid fa-screwdriver-wrench mr-1"></i> Admin Tools</p>
+        <div id="adminBulkBar" class="hidden mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex flex-col md:flex-row justify-between items-center max-w-7xl mx-auto gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+                <p class="text-xs font-bold text-red-600 uppercase mr-2"><i class="fa-solid fa-screwdriver-wrench mr-1"></i> Admin Tools</p>
                 <button onclick="autoSelectZeroStock()" class="text-[10px] bg-white border border-red-200 text-gray-700 px-3 py-1.5 rounded hover:bg-red-100 transition-colors font-semibold">
                     1. Select Empty Active
                 </button>
+                <button onclick="selectAllActive()" class="text-[10px] bg-white border border-blue-200 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors font-semibold">
+                    <i class="fa-solid fa-check-double mr-1"></i> 2. Select All Active
+                </button>
+                <button onclick="clearSelection()" class="text-[10px] bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors font-semibold">
+                    <i class="fa-solid fa-eraser mr-1"></i> 3. Clear Selection
+                </button>
             </div>
-            <button id="zeroDraftBtn" onclick="executeZeroDraft()" class="bg-red-600 text-white text-[10px] font-bold px-4 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
-                2. Zero Draft (<span id="selectedCount">0</span>)
+            <button id="zeroDraftBtn" onclick="executeZeroDraft()" class="bg-red-600 text-white text-[10px] font-bold px-4 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full md:w-auto" disabled>
+                4. Zero Draft (<span id="selectedCount">0</span>)
             </button>
         </div>
 
@@ -253,6 +259,9 @@
             <div class="bg-gray-50 px-5 py-3 border-t flex justify-between items-center gap-2 flex-shrink-0">
                 <button id="modalCancelBtn" onclick="closeModal()" class="px-3 py-2 text-xs font-medium text-gray-600 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">Cancel</button>
                 <div class="flex gap-2">
+                    <button onclick="zeroAllVariantsInModal()" class="px-4 py-2 bg-red-100 text-red-600 text-xs font-bold uppercase rounded hover:bg-red-600 hover:text-white transition-colors flex items-center gap-1">
+                        <i class="fa-solid fa-rotate-left"></i> Zero All
+                    </button>
                     <button id="saveBtn" onclick="saveInventoryChanges('main')" class="px-4 py-2 bg-black text-white text-xs font-bold uppercase rounded hover:bg-gray-800 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
                         <span id="saveBtnText">Update</span>
                     </button>
@@ -392,7 +401,7 @@
                         const inventoryItemId = input.getAttribute('data-inventory-item-id');
                         const newQty = parseInt(input.value) || 0;
                         const variant = product.variants.find(v => v.id == variantId);
-                        variant.inventory[currentStore] = newQty; // Optimistic update (optional)
+                        variant.inventory[currentStore] = newQty; 
 
                         updates.push({
                             productId: product.id,
@@ -402,6 +411,23 @@
                             quantity: newQty,
                             collectionName: currentCollectionName
                         });
+
+                        if (currentStore === 'admin') {
+                            ['dhanmondi', 'banani', 'uttara'].forEach(storeName => {
+                                const branchInput = document.getElementById(`fix-${storeName}-${variantId}`);
+                                if (branchInput) {
+                                    const branchQty = parseInt(branchInput.value) || 0;
+                                    updates.push({
+                                        productId: product.id,
+                                        variantId: variantId,
+                                        inventoryItemId: inventoryItemId,
+                                        store: storeName,
+                                        quantity: branchQty,
+                                        collectionName: currentCollectionName
+                                    });
+                                }
+                            });
+                        }
                     });
                 } else if (type === 'branch') {
                     const input = document.getElementById(`fix-${specificStore}-${specificVariantId}`);
@@ -727,17 +753,13 @@
                     <div class="mt-2 pt-2 border-t border-gray-100">
                         <div class="flex justify-between items-center mb-2">
                             <p class="text-[9px] text-gray-400 font-bold uppercase">Branch Corrections</p>
-                            <button onclick="saveInventoryChanges('reset_all', '${variant.id}')" class="bg-red-100 hover:bg-red-600 hover:text-white text-red-600 text-[9px] px-2 py-1 rounded transition-colors font-bold uppercase tracking-wider">
-                                <i class="fa-solid fa-trash-can mr-1"></i> Reset All to 0
-                            </button>
                         </div>
                         <div class="grid grid-cols-3 gap-2">
                             ${['dhanmondi', 'banani', 'uttara'].map(store => `
                                 <div class="flex flex-col">
                                     <label class="text-[8px] uppercase text-gray-500 mb-0.5">${store.substr(0,3)}</label>
                                     <div class="flex items-center gap-1">
-                                        <input type="number" id="fix-${store}-${variant.id}" value="${variant.inventory[store] || 0}" class="w-full text-xs border border-gray-200 rounded p-1 text-center bg-gray-50 focus:bg-white">
-                                        <button onclick="saveInventoryChanges('branch', '${variant.id}', '${store}')" class="text-[10px] bg-gray-200 hover:bg-black hover:text-white rounded px-1.5 py-1 transition-colors"><i class="fa-solid fa-check"></i></button>
+                                        <input type="number" id="fix-${store}-${variant.id}" value="${variant.inventory[store] || 0}" oninput="syncGlobalQty('${variant.id}')" class="w-full text-xs border border-gray-200 rounded p-1 text-center bg-gray-50 focus:bg-white">
                                     </div>
                                 </div>
                             `).join('')}
@@ -758,7 +780,7 @@
                             <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">${stockLabel}</span>
                             <div class="flex items-center gap-2">
                                 <button onclick="adjustInput('input-${variant.id}', -1)" class="w-7 h-7 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 text-gray-600"><i class="fa-solid fa-minus text-[10px]"></i></button>
-                                <input type="number" id="input-${variant.id}" value="${currentStock}" min="0" class="main-input w-12 text-center font-bold text-gray-800 bg-white border border-gray-300 rounded py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none" data-variant-id="${variant.id}" data-inventory-item-id="${variant.inventoryItemId}">
+                                <input type="number" id="input-${variant.id}" value="${currentStock}" min="0" oninput="checkGlobalReset('${variant.id}')" class="main-input w-12 text-center font-bold text-gray-800 bg-white border border-gray-300 rounded py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none" data-variant-id="${variant.id}" data-inventory-item-id="${variant.inventoryItemId}">
                                 <button onclick="adjustInput('input-${variant.id}', 1)" class="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center hover:bg-gray-800"><i class="fa-solid fa-plus text-[10px]"></i></button>
                             </div>
                         </div>
@@ -770,7 +792,46 @@
             document.getElementById('variantModal').classList.remove('hidden');
         }
 
-        function adjustInput(inputId, amount) { const input = document.getElementById(inputId); let val = parseInt(input.value) || 0; val += amount; if (val < 0) val = 0; input.value = val; }
+        function adjustInput(inputId, amount) { 
+            const input = document.getElementById(inputId); 
+            let val = parseInt(input.value) || 0; 
+            val += amount; 
+            if (val < 0) val = 0; 
+            input.value = val; 
+            const variantId = inputId.replace('input-', '');
+            checkGlobalReset(variantId);
+        }
+
+        function syncGlobalQty(variantId) {
+            let total = 0;
+            ['dhanmondi', 'banani', 'uttara'].forEach(store => {
+                const input = document.getElementById(`fix-${store}-${variantId}`);
+                if (input) total += parseInt(input.value) || 0;
+            });
+            const globalInput = document.getElementById(`input-${variantId}`);
+            if (globalInput) globalInput.value = total;
+        }
+
+        function checkGlobalReset(variantId) {
+            const globalInput = document.getElementById(`input-${variantId}`);
+            if (globalInput && (parseInt(globalInput.value) === 0 || globalInput.value === '')) {
+                ['dhanmondi', 'banani', 'uttara'].forEach(store => {
+                    const input = document.getElementById(`fix-${store}-${variantId}`);
+                    if (input) input.value = 0;
+                });
+            }
+        }
+
+        function zeroAllVariantsInModal() {
+            const inputs = document.querySelectorAll('#modalVariantsContainer input.main-input');
+            inputs.forEach(input => {
+                input.value = 0;
+                const variantId = input.getAttribute('data-variant-id');
+                checkGlobalReset(variantId);
+            });
+            showToast("All variants set to 0. Click Update to save.");
+        }
+
         function closeModal() { document.getElementById('variantModal').classList.add('hidden'); currentEditingProductId = null; }
         function openImagePreview(src, title) { const m = document.getElementById('imagePreviewModal'); document.getElementById('previewImage').src = src; document.getElementById('previewTitle').innerText = title; m.classList.remove('hidden'); setTimeout(() => m.classList.remove('opacity-0'), 10); }
         function closeImagePreview(e, force) { if (force || e.target.id === 'imagePreviewModal') { const m = document.getElementById('imagePreviewModal'); m.classList.add('opacity-0'); setTimeout(() => m.classList.add('hidden'), 300); } }
@@ -866,6 +927,98 @@
             document.getElementById('confirmationModal').classList.remove('hidden');
         }
 
+        function selectAllActive() {
+            const checkboxes = document.querySelectorAll('.bulk-check');
+            let found = 0;
+            checkboxes.forEach(box => {
+                const status = box.getAttribute('data-status');
+                if (status === 'ACTIVE') {
+                    box.checked = true;
+                    found++;
+                } else {
+                    box.checked = false;
+                }
+            });
+            updateBulkCount();
+            if(found > 0) showToast(`${found} Active Products Selected`);
+            else showToast("No Active Products Found");
+        }
+
+        function clearSelection() {
+            const checkboxes = document.querySelectorAll('.bulk-check');
+            let wasSelected = false;
+            checkboxes.forEach(box => {
+                if(box.checked) wasSelected = true;
+                box.checked = false;
+            });
+            updateBulkCount();
+            if(wasSelected) {
+                showToast("Selection Cleared");
+            }
+        }
+
+        function clearSelection() {
+            const checkboxes = document.querySelectorAll('.bulk-check');
+            let wasSelected = false;
+            checkboxes.forEach(box => {
+                if(box.checked) wasSelected = true;
+                box.checked = false;
+            });
+            updateBulkCount();
+            if(wasSelected) {
+                showToast("Selection Cleared");
+            }
+        }
+
+        function clearSelection() {
+            const checkboxes = document.querySelectorAll('.bulk-check');
+            let wasSelected = false;
+            checkboxes.forEach(box => {
+                if(box.checked) wasSelected = true;
+                box.checked = false;
+            });
+            updateBulkCount();
+            if(wasSelected) {
+                showToast("Selection Cleared");
+            }
+        }
+// Block Right-Click (Context Menu)
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+    });
+
+    // Block Keyboard Shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Block F12 (DevTools)
+        if (e.key === 'F12') {
+            e.preventDefault();
+        }
+        // Block Ctrl + Shift + I (Inspect Element)
+        if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) {
+            e.preventDefault();
+        }
+        // Block Ctrl + Shift + J (Console)
+        if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j')) {
+            e.preventDefault();
+        }
+        // Block Ctrl + Shift + C (Inspect Element)
+        if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) {
+            e.preventDefault();
+        }
+        // Block Ctrl + U (View Page Source)
+        if (e.ctrlKey && (e.key === 'U' || e.key === 'u')) {
+            e.preventDefault();
+        }
+        // Block Ctrl + S (Save Page)
+        if (e.ctrlKey && (e.key === 'S' || e.key === 's')) {
+            e.preventDefault();
+        }
+    });
+
+    // Debugger Loop (Freezes DevTools if opened via browser menu)
+    setInterval(function() {
+        (function() { return false; }['constructor']('debugger')());
+    }, 100);
         async function finalizeZeroDraft() {
             closeConfirmModal();
 
@@ -875,7 +1028,6 @@
             const btn = document.getElementById('zeroDraftBtn');
             const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
 
             let allUpdates = [];
 
@@ -884,48 +1036,66 @@
                 const product = products.find(p => p.id == productId);
                 
                 if (product) {
-                    // Collect updates for batch processing
                     product.variants.forEach(v => {
-                        allUpdates.push({
-                            productId: product.id,
-                            variantId: v.id,
-                            inventoryItemId: v.inventoryItemId,
-                            store: 'admin', 
-                            quantity: 0,
-                            action: 'updateInventory',
-                            collectionName: 'Bulk-Action'
+                        ['admin', 'dhanmondi', 'banani', 'uttara'].forEach(storeLoc => {
+                            allUpdates.push({
+                                productId: product.id,
+                                variantId: v.id,
+                                inventoryItemId: v.inventoryItemId,
+                                store: storeLoc, 
+                                quantity: 0,
+                                action: 'updateInventory',
+                                collectionName: 'Bulk-Action'
+                            });
                         });
                     });
                 }
             }
 
-            // Send all updates in ONE batch request
             if (allUpdates.length > 0) {
-                try {
-                    const payload = {
-                        action: 'batchUpdateInventory',
-                        updates: allUpdates
-                    };
+                const chunkSize = 20;
+                const chunks = [];
+                for (let i = 0; i < allUpdates.length; i += chunkSize) {
+                    chunks.push(allUpdates.slice(i, i + chunkSize));
+                }
 
-                    const response = await fetch(WEB_APP_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(payload)
-                    });
-                    
-                    const result = await response.json();
+                let hasError = false;
 
-                    if (result.status === 'success') {
-                        showToast(`Success! ${checkboxes.length} products updated.`);
-                        // Refresh
-                        products = []; 
-                        document.getElementById('productGrid').innerHTML = '';
-                        performSearch(document.getElementById('searchInput').value, selectedCollectionId);
-                    } else {
-                        throw new Error(result.message || "Bulk update failed");
+                for (let i = 0; i < chunks.length; i++) {
+                    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Updating ${Math.min((i + 1) * chunkSize, allUpdates.length)} / ${allUpdates.length}...`;
+                    try {
+                        const payload = {
+                            action: 'batchUpdateInventory',
+                            updates: chunks[i]
+                        };
+
+                        const response = await fetch(WEB_APP_URL, {
+                            method: 'POST',
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        const result = await response.json();
+                        if (result.status !== 'success') {
+                            hasError = true;
+                            break;
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        hasError = true;
+                        break;
                     }
-                } catch (e) { 
-                    console.error(e); 
-                    showToast("Error updating items!");
+                    if (i < chunks.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
+
+                if (!hasError) {
+                    showToast(`Success! Products updated to 0.`);
+                    products = []; 
+                    document.getElementById('productGrid').innerHTML = '';
+                    performSearch(document.getElementById('searchInput').value, selectedCollectionId);
+                } else {
+                    showToast("Error occurred during bulk update!");
                 }
             }
 
