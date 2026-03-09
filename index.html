@@ -173,46 +173,49 @@
                     </label>
                 </div>
             </div>
+
+            <!-- INVENTORY & ADMIN BAR STICKY/FREEZE SECTION START -->
+            <div id="statsBar" class="hidden flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
+                <h2 class="text-lg font-bold text-gray-700">Inventory</h2>
+                <div class="flex items-center gap-2">
+                    <select id="sortFilter" class="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-green-500 bg-white text-gray-700 h-8">
+                        <option value="STATUS_ACTIVE">Status: Active First</option>
+                        <option value="CREATED_AT:true" selected>Date, new to old</option>
+                        <option value="CREATED_AT:false">Date, old to new</option>
+                        <option value="TITLE:false">Alphabetically, A-Z</option>
+                        <option value="TITLE:true">Alphabetically, Z-A</option>
+                        <option value="PRICE:false">Price, low to high</option>
+                        <option value="PRICE:true">Price, high to low</option>
+                        <option value="BEST_SELLING:false">Best selling</option>
+                        <option value="MANUAL:false">Featured</option>
+                    </select>
+                    <div class="text-xs text-gray-500 bg-white px-2 py-1 rounded border h-8 flex items-center">Count: <span id="productCount" class="font-bold text-black ml-1">0</span></div>
+                </div>
+            </div>
+
+            <div id="adminBulkBar" class="hidden mt-3 p-3 bg-red-50 border border-red-100 rounded-lg flex flex-col md:flex-row justify-between items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2">
+                    <p class="text-xs font-bold text-red-600 uppercase mr-2"><i class="fa-solid fa-screwdriver-wrench mr-1"></i> Admin Tools</p>
+                    <button onclick="autoSelectZeroStock()" class="text-[10px] bg-white border border-red-200 text-gray-700 px-3 py-1.5 rounded hover:bg-red-100 transition-colors font-semibold">
+                        1. Select Empty Active
+                    </button>
+                    <button onclick="selectAllActive()" class="text-[10px] bg-white border border-blue-200 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors font-semibold">
+                        <i class="fa-solid fa-check-double mr-1"></i> 2. Select All Active
+                    </button>
+                    <button onclick="clearSelection()" class="text-[10px] bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors font-semibold">
+                        <i class="fa-solid fa-eraser mr-1"></i> 3. Clear Selection
+                    </button>
+                </div>
+                <button id="zeroDraftBtn" onclick="executeZeroDraft()" class="bg-red-600 text-white text-[10px] font-bold px-4 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full md:w-auto" disabled>
+                    4. Zero Draft (<span id="selectedCount">0</span>)
+                </button>
+            </div>
+            <!-- INVENTORY & ADMIN BAR STICKY/FREEZE SECTION END -->
+
         </div>
     </div>
 
-    <div class="max-w-full mx-auto px-4 py-4">
-        
-        <div id="statsBar" class="hidden flex justify-between items-center mb-4 max-w-7xl mx-auto">
-            <h2 class="text-lg font-bold text-gray-700">Inventory</h2>
-            <div class="flex items-center gap-2">
-                <select id="sortFilter" class="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-green-500 bg-white text-gray-700 h-8">
-                    <option value="STATUS_ACTIVE">Status: Active First</option>
-                    <option value="CREATED_AT:true" selected>Date, new to old</option>
-                    <option value="CREATED_AT:false">Date, old to new</option>
-                    <option value="TITLE:false">Alphabetically, A-Z</option>
-                    <option value="TITLE:true">Alphabetically, Z-A</option>
-                    <option value="PRICE:false">Price, low to high</option>
-                    <option value="PRICE:true">Price, high to low</option>
-                    <option value="BEST_SELLING:false">Best selling</option>
-                    <option value="MANUAL:false">Featured</option>
-                </select>
-                <div class="text-xs text-gray-500 bg-white px-2 py-1 rounded border h-8 flex items-center">Count: <span id="productCount" class="font-bold text-black ml-1">0</span></div>
-            </div>
-        </div>
-
-        <div id="adminBulkBar" class="hidden mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex flex-col md:flex-row justify-between items-center max-w-7xl mx-auto gap-3">
-            <div class="flex flex-wrap items-center gap-2">
-                <p class="text-xs font-bold text-red-600 uppercase mr-2"><i class="fa-solid fa-screwdriver-wrench mr-1"></i> Admin Tools</p>
-                <button onclick="autoSelectZeroStock()" class="text-[10px] bg-white border border-red-200 text-gray-700 px-3 py-1.5 rounded hover:bg-red-100 transition-colors font-semibold">
-                    1. Select Empty Active
-                </button>
-                <button onclick="selectAllActive()" class="text-[10px] bg-white border border-blue-200 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors font-semibold">
-                    <i class="fa-solid fa-check-double mr-1"></i> 2. Select All Active
-                </button>
-                <button onclick="clearSelection()" class="text-[10px] bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors font-semibold">
-                    <i class="fa-solid fa-eraser mr-1"></i> 3. Clear Selection
-                </button>
-            </div>
-            <button id="zeroDraftBtn" onclick="executeZeroDraft()" class="bg-red-600 text-white text-[10px] font-bold px-4 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full md:w-auto" disabled>
-                4. Zero Draft (<span id="selectedCount">0</span>)
-            </button>
-        </div>
+    <div class="max-w-full mx-auto px-4 py-4 pt-2">
 
         <div id="initialState" class="text-center py-24">
             <div class="bg-white p-8 rounded-2xl shadow-sm inline-block border border-gray-100 mx-4">
