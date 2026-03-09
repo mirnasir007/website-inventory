@@ -956,32 +956,6 @@
                 showToast("Selection Cleared");
             }
         }
-
-        function clearSelection() {
-            const checkboxes = document.querySelectorAll('.bulk-check');
-            let wasSelected = false;
-            checkboxes.forEach(box => {
-                if(box.checked) wasSelected = true;
-                box.checked = false;
-            });
-            updateBulkCount();
-            if(wasSelected) {
-                showToast("Selection Cleared");
-            }
-        }
-
-        function clearSelection() {
-            const checkboxes = document.querySelectorAll('.bulk-check');
-            let wasSelected = false;
-            checkboxes.forEach(box => {
-                if(box.checked) wasSelected = true;
-                box.checked = false;
-            });
-            updateBulkCount();
-            if(wasSelected) {
-                showToast("Selection Cleared");
-            }
-        }
 // Block Right-Click (Context Menu)
     document.addEventListener('contextmenu', function(e) {
         e.preventDefault();
@@ -1062,7 +1036,10 @@
                 let hasError = false;
 
                 for (let i = 0; i < chunks.length; i++) {
-                    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Updating ${Math.min((i + 1) * chunkSize, allUpdates.length)} / ${allUpdates.length}...`;
+                    // Calculate actual product count instead of payload count
+const totalProducts = checkboxes.length;
+const processedProducts = Math.min(Math.ceil(((i + 1) * chunkSize) / 4), totalProducts);
+btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Updating ${processedProducts} / ${totalProducts} Products...`;
                     try {
                         const payload = {
                             action: 'batchUpdateInventory',
