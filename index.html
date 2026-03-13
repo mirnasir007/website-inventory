@@ -158,16 +158,20 @@
                         <div class="max-h-48 overflow-y-auto custom-scroll" id="dropdownListContainer"></div>
                     </div>
                 </div>
+                
                 <button onclick="clearFilters()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center border border-gray-300 transition-colors" title="Reset"><i class="fa-solid fa-rotate-left text-xs"></i></button>
+                
                 <div class="flex-1 min-w-0 flex gap-2 items-center">
                     <div class="relative flex-1 min-w-0">
                         <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400 text-xs"></i>
                         <input type="text" id="searchInput" placeholder="Search..." class="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:border-green-500">
                     </div>
-                    <button onclick="triggerSearchProcess()" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors flex-shrink-0 shadow-sm">
+                    
+                    <button onclick="triggerSearchProcess()" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-3 md:px-4 py-2 rounded-lg transition-colors flex-shrink-0 shadow-sm">
                         Search
                     </button>
-                    <label class="flex items-center gap-1.5 cursor-pointer bg-white border border-gray-300 px-2.5 py-2 rounded-lg shadow-sm hover:bg-gray-50 flex-shrink-0 transition-colors" title="Auto-trim last 4 digits for Scanner">
+                    
+                    <label class="hidden md:flex items-center gap-1.5 cursor-pointer bg-white border border-gray-300 px-2.5 py-2 rounded-lg shadow-sm hover:bg-gray-50 flex-shrink-0 transition-colors" title="Auto-trim last 4 digits for Scanner">
                         <input type="checkbox" id="autoTrimCheck" class="w-3.5 h-3.5 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer">
                         <span class="text-[10px] font-bold text-gray-700 uppercase">Auto</span>
                     </label>
@@ -959,43 +963,6 @@
                 showToast("Selection Cleared");
             }
         }
-// Block Right-Click (Context Menu)
-    document.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-    });
-
-    // Block Keyboard Shortcuts
-    document.addEventListener('keydown', function(e) {
-        // Block F12 (DevTools)
-        if (e.key === 'F12') {
-            e.preventDefault();
-        }
-        // Block Ctrl + Shift + I (Inspect Element)
-        if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) {
-            e.preventDefault();
-        }
-        // Block Ctrl + Shift + J (Console)
-        if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j')) {
-            e.preventDefault();
-        }
-        // Block Ctrl + Shift + C (Inspect Element)
-        if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) {
-            e.preventDefault();
-        }
-        // Block Ctrl + U (View Page Source)
-        if (e.ctrlKey && (e.key === 'U' || e.key === 'u')) {
-            e.preventDefault();
-        }
-        // Block Ctrl + S (Save Page)
-        if (e.ctrlKey && (e.key === 'S' || e.key === 's')) {
-            e.preventDefault();
-        }
-    });
-
-    // Debugger Loop (Freezes DevTools if opened via browser menu)
-    setInterval(function() {
-        (function() { return false; }['constructor']('debugger')());
-    }, 100);
         async function finalizeZeroDraft() {
             closeConfirmModal();
 
