@@ -407,31 +407,55 @@
                         const variantId = input.getAttribute('data-variant-id');
                         const inventoryItemId = input.getAttribute('data-inventory-item-id');
                         const newQty = parseInt(input.value) || 0;
+                        const originalQty = parseInt(input.getAttribute('data-original')) || 0;
                         const variant = product.variants.find(v => v.id == variantId);
                         variant.inventory[currentStore] = newQty; 
 
-                        updates.push({
-                            productId: product.id,
-                            variantId: variantId,
-                            inventoryItemId: inventoryItemId,
-                            store: currentStore,
-                            quantity: newQty,
-                            collectionName: currentCollectionName
-                        });
+                        // DELTA FIX 1: Send Branch update only if changed
+                        if (currentStore !== 'admin') {
+                            if (newQty !== originalQty) {
+                                updates.push({
+                                    productId: product.id,
+                                    variantId: variantId,
+                                    inventoryItemId: inventoryItemId,
+                                    store: currentStore,
+                                    quantity: newQty,
+                                    delta: newQty - originalQty,
+                                    collectionName: currentCollectionName
+                                });
+                            }
+                        } else {
+                            // Admin sending Global quantity
+                            updates.push({
+                                productId: product.id,
+                                variantId: variantId,
+                                inventoryItemId: inventoryItemId,
+                                store: currentStore,
+                                quantity: newQty,
+                                delta: newQty - originalQty,
+                                collectionName: currentCollectionName
+                            });
+                        }
 
                         if (currentStore === 'admin') {
                             ['dhanmondi', 'banani', 'uttara'].forEach(storeName => {
                                 const branchInput = document.getElementById(`fix-${storeName}-${variantId}`);
                                 if (branchInput) {
                                     const branchQty = parseInt(branchInput.value) || 0;
-                                    updates.push({
-                                        productId: product.id,
-                                        variantId: variantId,
-                                        inventoryItemId: inventoryItemId,
-                                        store: storeName,
-                                        quantity: branchQty,
-                                        collectionName: currentCollectionName
-                                    });
+                                    const branchOriginal = parseInt(branchInput.getAttribute('data-original')) || 0;
+                                    
+                                    // DELTA FIX 2: Prevent overwriting! Only send if Admin actually edited this specific branch box
+                                    if (branchQty !== branchOriginal) {
+                                        updates.push({
+                                            productId: product.id,
+                                            variantId: variantId,
+                                            inventoryItemId: inventoryItemId,
+                                            store: storeName,
+                                            quantity: branchQty,
+                                            delta: branchQty - branchOriginal,
+                                            collectionName: currentCollectionName
+                                        });
+                                    }
                                 }
                             });
                         }
@@ -766,7 +790,7 @@
                                 <div class="flex flex-col">
                                     <label class="text-[8px] uppercase text-gray-500 mb-0.5">${store.substr(0,3)}</label>
                                     <div class="flex items-center gap-1">
-                                        <input type="number" id="fix-${store}-${variant.id}" value="${variant.inventory[store] || 0}" oninput="syncGlobalQty('${variant.id}')" class="w-full text-xs border border-gray-200 rounded p-1 text-center bg-gray-50 focus:bg-white">
+                                        <input type="number" id="fix-${store}-${variant.id}" value="${variant.inventory[store] || 0}" data-original="${variant.inventory[store] || 0}" oninput="syncGlobalQty('${variant.id}')" class="w-full text-xs border border-gray-200 rounded p-1 text-center bg-gray-50 focus:bg-white">
                                     </div>
                                 </div>
                             `).join('')}
@@ -787,7 +811,7 @@
                             <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">${stockLabel}</span>
                             <div class="flex items-center gap-2">
                                 <button onclick="adjustInput('input-${variant.id}', -1)" class="w-7 h-7 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 text-gray-600"><i class="fa-solid fa-minus text-[10px]"></i></button>
-                                <input type="number" id="input-${variant.id}" value="${currentStock}" min="0" oninput="checkGlobalReset('${variant.id}')" class="main-input w-12 text-center font-bold text-gray-800 bg-white border border-gray-300 rounded py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none" data-variant-id="${variant.id}" data-inventory-item-id="${variant.inventoryItemId}">
+                                <input type="number" id="input-${variant.id}" value="${currentStock}" min="0" data-original="${currentStock}" oninput="checkGlobalReset('${variant.id}')" class="main-input w-12 text-center font-bold text-gray-800 bg-white border border-gray-300 rounded py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none" data-variant-id="${variant.id}" data-inventory-item-id="${variant.inventoryItemId}">
                                 <button onclick="adjustInput('input-${variant.id}', 1)" class="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center hover:bg-gray-800"><i class="fa-solid fa-plus text-[10px]"></i></button>
                             </div>
                         </div>
