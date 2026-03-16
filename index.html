@@ -796,6 +796,14 @@
                 `;
                 container.appendChild(div);
             });
+            
+            // --- FRONTEND FIX: AUTO-SYNC GLOBAL QTY ON MODAL OPEN ---
+            if (currentStore === 'admin') {
+                product.variants.forEach(variant => {
+                    syncGlobalQty(variant.id);
+                });
+            }
+
             document.getElementById('variantModal').classList.remove('hidden');
         }
 
