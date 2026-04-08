@@ -178,7 +178,6 @@
                 </div>
             </div>
 
-            <!-- INVENTORY & ADMIN BAR STICKY/FREEZE SECTION START -->
             <div id="statsBar" class="hidden flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
                 <h2 class="text-lg font-bold text-gray-700">Inventory</h2>
                 <div class="flex items-center gap-2">
@@ -201,22 +200,28 @@
                 <div class="flex flex-wrap items-center gap-2">
                     <p class="text-xs font-bold text-red-600 uppercase mr-2"><i class="fa-solid fa-screwdriver-wrench mr-1"></i> Admin Tools</p>
                     <button onclick="autoSelectZeroStock()" class="text-[10px] bg-white border border-red-200 text-gray-700 px-3 py-1.5 rounded hover:bg-red-100 transition-colors font-semibold">
-                        1. Select Empty Active
+                        1. Empty Active
                     </button>
                     <button onclick="selectAllActive()" class="text-[10px] bg-white border border-blue-200 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors font-semibold">
-                        <i class="fa-solid fa-check-double mr-1"></i> 2. Select All Active
+                        2. All Active
+                    </button>
+                    <button onclick="selectBranchStock()" class="text-[10px] bg-white border border-purple-200 text-purple-700 px-3 py-1.5 rounded hover:bg-purple-100 transition-colors font-semibold">
+                        3. Has Branch Data
                     </button>
                     <button onclick="clearSelection()" class="text-[10px] bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors font-semibold">
-                        <i class="fa-solid fa-eraser mr-1"></i> 3. Clear Selection
+                        <i class="fa-solid fa-eraser mr-1"></i> Clear
                     </button>
                 </div>
-                <button id="zeroDraftBtn" onclick="executeZeroDraft()" class="bg-red-600 text-white text-[10px] font-bold px-4 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full md:w-auto" disabled>
-                    4. Zero Draft (<span id="selectedCount">0</span>)
-                </button>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <button id="clearBranchesBtn" onclick="executeClearBranches()" class="bg-purple-600 text-white text-[10px] font-bold px-4 py-1.5 rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-1" disabled>
+                        Clear Branch Data
+                    </button>
+                    <button id="zeroDraftBtn" onclick="executeZeroDraft()" class="bg-red-600 text-white text-[10px] font-bold px-4 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-1" disabled>
+                        Zero Draft (<span id="selectedCount">0</span>)
+                    </button>
+                </div>
             </div>
-            <!-- INVENTORY & ADMIN BAR STICKY/FREEZE SECTION END -->
-
-        </div>
+            </div>
     </div>
 
     <div class="max-w-full mx-auto px-4 py-4 pt-2">
@@ -289,7 +294,7 @@
                     <button onclick="closeConfirmModal()" class="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
                         Cancel
                     </button>
-                    <button onclick="finalizeZeroDraft()" class="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 shadow-md transition-transform active:scale-95">
+                    <button id="confirmActionBtn" onclick="finalizeZeroDraft()" class="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 shadow-md transition-transform active:scale-95">
                         Yes, Confirm
                     </button>
                 </div>
@@ -930,6 +935,8 @@
             const count = document.querySelectorAll('.bulk-check:checked').length;
             document.getElementById('selectedCount').innerText = count;
             document.getElementById('zeroDraftBtn').disabled = count === 0;
+            const clearBtn = document.getElementById('clearBranchesBtn');
+            if (clearBtn) clearBtn.disabled = count === 0;
         }
 
         function autoSelectZeroStock() {
@@ -963,6 +970,10 @@
 
             const msg = `You are about to Zero & Draft <b>${checkboxes.length} products</b>.<br>This cannot be undone.`;
             document.getElementById('confirmMsg').innerHTML = msg;
+            
+            const confirmBtn = document.getElementById('confirmActionBtn');
+            confirmBtn.setAttribute('onclick', 'finalizeZeroDraft()');
+            
             document.getElementById('confirmationModal').classList.remove('hidden');
         }
 
@@ -1038,10 +1049,9 @@
                 let hasError = false;
 
                 for (let i = 0; i < chunks.length; i++) {
-                    // Calculate actual product count instead of payload count
-const totalProducts = checkboxes.length;
-const processedProducts = Math.min(Math.ceil(((i + 1) * chunkSize) / 4), totalProducts);
-btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Updating ${processedProducts} / ${totalProducts} Products...`;
+                    const totalProducts = checkboxes.length;
+                    const processedProducts = Math.min(Math.ceil(((i + 1) * chunkSize) / 4), totalProducts);
+                    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Updating ${processedProducts} / ${totalProducts}...`;
                     try {
                         const payload = {
                             action: 'batchUpdateInventory',
@@ -1076,6 +1086,128 @@ btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Updating ${pro
                 } else {
                     showToast("Error occurred during bulk update!");
                 }
+            }
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+
+        // --- NEW BRANCH CLEARING LOGIC ---
+        function selectBranchStock() {
+            const checkboxes = document.querySelectorAll('.bulk-check');
+            let found = 0;
+            checkboxes.forEach(box => {
+                const stock = parseInt(box.getAttribute('data-stock')) || 0;
+                if (stock > 0) {
+                    box.checked = true;
+                    found++;
+                } else {
+                    box.checked = false;
+                }
+            });
+            updateBulkCount();
+            if(found > 0) showToast(`${found} Products with Branch Data Selected`);
+            else showToast("No Products with Branch Data Found");
+        }
+
+        function executeClearBranches() {
+            const checkboxes = document.querySelectorAll('.bulk-check:checked');
+            if (checkboxes.length === 0) return;
+
+            const msg = `You are about to clear branch stock (Uttara, Dhanmondi, Banani) for <b>${checkboxes.length} products</b>.<br>This will set their branch metafield quantities to 0.`;
+            document.getElementById('confirmMsg').innerHTML = msg;
+            
+            const confirmBtn = document.getElementById('confirmActionBtn');
+            confirmBtn.setAttribute('onclick', 'finalizeClearBranches()');
+            
+            document.getElementById('confirmationModal').classList.remove('hidden');
+        }
+
+        async function finalizeClearBranches() {
+            closeConfirmModal();
+
+            const checkboxes = document.querySelectorAll('.bulk-check:checked');
+            if (checkboxes.length === 0) return;
+
+            const btn = document.getElementById('clearBranchesBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+
+            let allUpdates = [];
+
+            for (const box of checkboxes) {
+                const productId = box.getAttribute('data-id');
+                const product = products.find(p => p.id == productId);
+                
+                if (product) {
+                    product.variants.forEach(v => {
+                        ['dhanmondi', 'banani', 'uttara'].forEach(storeLoc => {
+                            if (v.inventory[storeLoc] > 0) {
+                                allUpdates.push({
+                                    productId: product.id,
+                                    variantId: v.id,
+                                    inventoryItemId: v.inventoryItemId,
+                                    store: storeLoc, 
+                                    quantity: 0,
+                                    delta: -(v.inventory[storeLoc]),
+                                    action: 'updateInventory',
+                                    collectionName: currentCollectionName || 'Bulk-Clear'
+                                });
+                            }
+                        });
+                    });
+                }
+            }
+
+            if (allUpdates.length > 0) {
+                const chunkSize = 20;
+                const chunks = [];
+                for (let i = 0; i < allUpdates.length; i += chunkSize) {
+                    chunks.push(allUpdates.slice(i, i + chunkSize));
+                }
+
+                let hasError = false;
+
+                for (let i = 0; i < chunks.length; i++) {
+                    const totalProducts = checkboxes.length;
+                    const processedProducts = Math.min(Math.ceil(((i + 1) * chunkSize) / 3), totalProducts);
+                    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Clearing ${processedProducts} / ${totalProducts}...`;
+                    try {
+                        const payload = {
+                            action: 'batchUpdateInventory',
+                            updates: chunks[i]
+                        };
+
+                        const response = await fetch(WEB_APP_URL, {
+                            method: 'POST',
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        const result = await response.json();
+                        if (result.status !== 'success') {
+                            hasError = true;
+                            break;
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        hasError = true;
+                        break;
+                    }
+                    if (i < chunks.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
+
+                if (!hasError) {
+                    showToast(`Success! Branch data cleared.`);
+                    products = []; 
+                    document.getElementById('productGrid').innerHTML = '';
+                    performSearch(document.getElementById('searchInput').value, selectedCollectionId);
+                } else {
+                    showToast("Error occurred during bulk clear!");
+                }
+            } else {
+                showToast("No branch data needed clearing.");
             }
 
             btn.innerHTML = originalText;
