@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Website Inventory</title>
+    <link rel="icon" type="image/jpeg" href="https://i.postimg.cc/C5QZmD4r/482011194-948707940770966-7327635956248138063-n.jpg">
     
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -52,8 +53,8 @@
 <body class="text-slate-800 relative">
 
     <script>
-        // *** REPLACE THIS URL WITH YOUR DEPLOYMENT URL ***
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzZLIADFPhsYJW8wABKi3CGBvoRklmMAD5QMZJVntCoJBeJVT7JCKQrZbJ7vehVZII/exec";
+        // --- NODE.JS LIVE SERVER URL ---
+        const WEB_APP_URL = "https://inventory-backend-rwfi.onrender.com/api";
         
         window.addEventListener('DOMContentLoaded', () => {
             const manifest = {
@@ -221,11 +222,10 @@
                     </button>
                 </div>
             </div>
-            </div>
+        </div>
     </div>
 
     <div class="max-w-full mx-auto px-4 py-4 pt-2">
-
         <div id="initialState" class="text-center py-24">
             <div class="bg-white p-8 rounded-2xl shadow-sm inline-block border border-gray-100 mx-4">
                 <div class="text-green-600 text-5xl mb-4"><i class="fa-solid fa-boxes-stacked"></i></div>
@@ -360,6 +360,7 @@
             try {
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'login', store: selectedStore, password: password })
                 });
                 const data = await response.json();
@@ -416,7 +417,6 @@
                         const variant = product.variants.find(v => v.id == variantId);
                         variant.inventory[currentStore] = newQty; 
 
-                        // DELTA FIX 1: Send Branch update only if changed
                         if (currentStore !== 'admin') {
                             if (newQty !== originalQty) {
                                 updates.push({
@@ -430,7 +430,6 @@
                                 });
                             }
                         } else {
-                            // Admin sending Global quantity
                             updates.push({
                                 productId: product.id,
                                 variantId: variantId,
@@ -449,7 +448,6 @@
                                     const branchQty = parseInt(branchInput.value) || 0;
                                     const branchOriginal = parseInt(branchInput.getAttribute('data-original')) || 0;
                                     
-                                    // DELTA FIX 2: Prevent overwriting! Only send if Admin actually edited this specific branch box
                                     if (branchQty !== branchOriginal) {
                                         updates.push({
                                             productId: product.id,
@@ -507,6 +505,7 @@
 
                     const response = await fetch(WEB_APP_URL, {
                         method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
                     
@@ -525,6 +524,8 @@
                     } else {
                         throw new Error(result.message || 'Update failed');
                     }
+                } else {
+                    closeModal(); // No updates needed
                 }
 
             } catch (error) {
@@ -575,7 +576,7 @@
             const list = document.getElementById('adminNotificationList');
             const dot = document.getElementById('adminBellDot');
             bellContainer.classList.remove('hidden');
-            if (notifications.length > 0) {
+            if (notifications && notifications.length > 0) {
                 dot.style.display = 'block';
                 list.innerHTML = '';
                 notifications.forEach(notif => {
@@ -826,7 +827,6 @@
                 container.appendChild(div);
             });
             
-            // --- FRONTEND FIX: AUTO-SYNC GLOBAL QTY ON MODAL OPEN ---
             if (currentStore === 'admin') {
                 product.variants.forEach(variant => {
                     syncGlobalQty(variant.id);
@@ -880,52 +880,29 @@
         function openImagePreview(src, title) { const m = document.getElementById('imagePreviewModal'); document.getElementById('previewImage').src = src; document.getElementById('previewTitle').innerText = title; m.classList.remove('hidden'); setTimeout(() => m.classList.remove('opacity-0'), 10); }
         function closeImagePreview(e, force) { if (force || e.target.id === 'imagePreviewModal') { const m = document.getElementById('imagePreviewModal'); m.classList.add('opacity-0'); setTimeout(() => m.classList.add('hidden'), 300); } }
         function showToast(msg) { const t = document.getElementById('toast'); document.getElementById('toastMsg').innerText = msg; t.classList.remove('translate-y-20', 'opacity-0'); setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000); }
-        function renderNotifications(notifications) {
-            const list = document.getElementById('notificationList');
-            list.innerHTML = ''; 
-            notifications.forEach(notif => {
-                const item = document.createElement('div');
-                item.className = 'flex justify-between items-center bg-white p-2 rounded border border-blue-100 shadow-sm';
-                item.innerHTML = `<div class="flex items-center gap-2"><span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"><i class="fa-solid fa-pen"></i></span><div class="text-xs text-gray-700 truncate max-w-[200px]"><span class="font-bold text-gray-900">${notif.msg.split(' updated ')[0]}</span> updated <span class="font-bold text-blue-600">${notif.collection}</span></div></div><button onclick="applyNotificationFilter('${notif.collection}')" class="text-[10px] bg-gray-900 text-white px-3 py-1 rounded transition-colors">View</button>`;
-                list.appendChild(item);
-            });
-            document.getElementById('notificationsContainer').classList.remove('hidden');
-        }
-        function applyNotificationFilter(collectionTitle) {
-            const list = document.querySelectorAll('.option');
-            let foundId = "";
-            list.forEach(opt => { if(opt.innerText === collectionTitle) foundId = opt.dataset.value; });
-            if(foundId) selectCollection(foundId, collectionTitle);
-        }
 
-        // 1. Kono auto-search hobena normal typing e, API call onek save hobe
         document.getElementById('searchInput').addEventListener('input', (e) => {
-            // Box e kisu likhle auto search off, user button e click korbe ba enter dibe
+            // Box e kisu likhle auto search off
         });
 
-        // 2. Barcode scanner scan korle automatic 'Enter' press hoy, sheta catch korbo
         document.getElementById('searchInput').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                triggerSearchProcess(); // Scanner theke scan hole auto search hobe
+                triggerSearchProcess(); 
             }
         });
 
-        // 3. Search Button e click korle ba Scanner scan korle ei function cholbe
         function triggerSearchProcess() {
             let val = document.getElementById('searchInput').value.trim();
             if (!val) return;
 
-            // Check if "Auto" checkbox is ticked
             const isAutoTrimEnabled = document.getElementById('autoTrimCheck').checked;
 
-            // User er idea: Auto tick thakle ebong 7 character er theke boro holei shudhu katbe
             if (isAutoTrimEnabled && val.length > 7) {
                 val = val.substring(0, val.length - 4);
-                document.getElementById('searchInput').value = val; // Box e update kora value dekhabe
+                document.getElementById('searchInput').value = val; 
             }
 
-            // Search trigger korbe, sathe dropdown filter thakle shetao dhore rakhbe
             lastCursor = null; 
             performSearch(val, selectedCollectionId);
         }
@@ -946,7 +923,6 @@
                 const status = box.getAttribute('data-status');
                 const stock = parseInt(box.getAttribute('data-stock'));
                 
-                // Active & No Branch Stock (Stock <= 0)
                 if (status === 'ACTIVE' && stock <= 0) {
                     box.checked = true;
                     found++;
@@ -959,7 +935,6 @@
             else showToast("No Empty Active Products Found");
         }
 
-        // --- UPDATED POPUP LOGIC (BATCHED) ---
         function closeConfirmModal() {
             document.getElementById('confirmationModal').classList.add('hidden');
         }
@@ -1006,6 +981,7 @@
                 showToast("Selection Cleared");
             }
         }
+
         async function finalizeZeroDraft() {
             closeConfirmModal();
 
@@ -1044,6 +1020,7 @@
 
                         const response = await fetch(WEB_APP_URL, {
                             method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
                         });
                         
@@ -1073,7 +1050,6 @@
             btn.disabled = false;
         }
 
-        // --- NEW BRANCH CLEARING LOGIC ---
         function selectBranchStock() {
             const checkboxes = document.querySelectorAll('.bulk-check');
             let found = 0;
@@ -1142,6 +1118,7 @@
 
                         const response = await fetch(WEB_APP_URL, {
                             method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
                         });
                         
