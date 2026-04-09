@@ -1016,46 +1016,30 @@
             const originalText = btn.innerHTML;
             btn.disabled = true;
 
-            let allUpdates = [];
-
+            let selectedProducts = [];
             for (const box of checkboxes) {
                 const productId = box.getAttribute('data-id');
                 const product = products.find(p => p.id == productId);
-                
-                if (product) {
-                    product.variants.forEach(v => {
-                        ['admin', 'dhanmondi', 'banani', 'uttara'].forEach(storeLoc => {
-                            allUpdates.push({
-                                productId: product.id,
-                                variantId: v.id,
-                                inventoryItemId: v.inventoryItemId,
-                                store: storeLoc, 
-                                quantity: 0,
-                                action: 'updateInventory',
-                                collectionName: 'Bulk-Action'
-                            });
-                        });
-                    });
-                }
+                if (product) selectedProducts.push(product);
             }
 
-            if (allUpdates.length > 0) {
-                const chunkSize = 20;
+            if (selectedProducts.length > 0) {
+                const chunkSize = 10;
                 const chunks = [];
-                for (let i = 0; i < allUpdates.length; i += chunkSize) {
-                    chunks.push(allUpdates.slice(i, i + chunkSize));
+                for (let i = 0; i < selectedProducts.length; i += chunkSize) {
+                    chunks.push(selectedProducts.slice(i, i + chunkSize));
                 }
 
                 let hasError = false;
 
                 for (let i = 0; i < chunks.length; i++) {
                     const totalProducts = checkboxes.length;
-                    const processedProducts = Math.min(Math.ceil(((i + 1) * chunkSize) / 4), totalProducts);
+                    const processedProducts = Math.min(((i + 1) * chunkSize), totalProducts);
                     btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Updating ${processedProducts} / ${totalProducts}...`;
                     try {
                         const payload = {
-                            action: 'batchUpdateInventory',
-                            updates: chunks[i]
+                            action: 'bulkZeroDraft',
+                            products: chunks[i]
                         };
 
                         const response = await fetch(WEB_APP_URL, {
@@ -1073,13 +1057,10 @@
                         hasError = true;
                         break;
                     }
-                    if (i < chunks.length - 1) {
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                    }
                 }
 
                 if (!hasError) {
-                    showToast(`Success! Products updated to 0.`);
+                    showToast(`Success! Products zeroed and drafted.`);
                     products = []; 
                     document.getElementById('productGrid').innerHTML = '';
                     performSearch(document.getElementById('searchInput').value, selectedCollectionId);
@@ -1133,49 +1114,30 @@
             const originalText = btn.innerHTML;
             btn.disabled = true;
 
-            let allUpdates = [];
-
+            let selectedProducts = [];
             for (const box of checkboxes) {
                 const productId = box.getAttribute('data-id');
                 const product = products.find(p => p.id == productId);
-                
-                if (product) {
-                    product.variants.forEach(v => {
-                        ['dhanmondi', 'banani', 'uttara'].forEach(storeLoc => {
-                            if (v.inventory[storeLoc] > 0) {
-                                allUpdates.push({
-                                    productId: product.id,
-                                    variantId: v.id,
-                                    inventoryItemId: v.inventoryItemId,
-                                    store: storeLoc, 
-                                    quantity: 0,
-                                    delta: -(v.inventory[storeLoc]),
-                                    action: 'updateInventory',
-                                    collectionName: currentCollectionName || 'Bulk-Clear'
-                                });
-                            }
-                        });
-                    });
-                }
+                if (product) selectedProducts.push(product);
             }
 
-            if (allUpdates.length > 0) {
-                const chunkSize = 20;
+            if (selectedProducts.length > 0) {
+                const chunkSize = 10;
                 const chunks = [];
-                for (let i = 0; i < allUpdates.length; i += chunkSize) {
-                    chunks.push(allUpdates.slice(i, i + chunkSize));
+                for (let i = 0; i < selectedProducts.length; i += chunkSize) {
+                    chunks.push(selectedProducts.slice(i, i + chunkSize));
                 }
 
                 let hasError = false;
 
                 for (let i = 0; i < chunks.length; i++) {
                     const totalProducts = checkboxes.length;
-                    const processedProducts = Math.min(Math.ceil(((i + 1) * chunkSize) / 3), totalProducts);
+                    const processedProducts = Math.min(((i + 1) * chunkSize), totalProducts);
                     btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Clearing ${processedProducts} / ${totalProducts}...`;
                     try {
                         const payload = {
-                            action: 'batchUpdateInventory',
-                            updates: chunks[i]
+                            action: 'bulkClearBranch',
+                            products: chunks[i]
                         };
 
                         const response = await fetch(WEB_APP_URL, {
@@ -1192,9 +1154,6 @@
                         console.error(e);
                         hasError = true;
                         break;
-                    }
-                    if (i < chunks.length - 1) {
-                        await new Promise(resolve => setTimeout(resolve, 1000));
                     }
                 }
 
