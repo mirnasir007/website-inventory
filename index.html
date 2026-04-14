@@ -415,9 +415,11 @@
                         const newQty = parseInt(input.value) || 0;
                         const originalQty = parseInt(input.getAttribute('data-original')) || 0;
                         const variant = product.variants.find(v => v.id == variantId);
-                        variant.inventory[currentStore] = newQty; 
-
+                        
                         if (currentStore !== 'admin') {
+                            variant.inventory[currentStore] = newQty; 
+                            variant.actualShopifyStock = (variant.inventory.dhanmondi || 0) + (variant.inventory.banani || 0) + (variant.inventory.uttara || 0);
+                            
                             if (newQty !== originalQty) {
                                 updates.push({
                                     productId: product.id,
@@ -431,6 +433,7 @@
                                 });
                             }
                         } else {
+                            variant.actualShopifyStock = newQty;
                             updates.push({
                                 productId: product.id,
                                 variantId: variantId,
@@ -441,14 +444,14 @@
                                 collectionName: currentCollectionName,
                                 actor: currentStore
                             });
-                        }
-
-                        if (currentStore === 'admin') {
+                            
                             ['dhanmondi', 'banani', 'uttara'].forEach(storeName => {
                                 const branchInput = document.getElementById(`fix-${storeName}-${variantId}`);
                                 if (branchInput) {
                                     const branchQty = parseInt(branchInput.value) || 0;
                                     const branchOriginal = parseInt(branchInput.getAttribute('data-original')) || 0;
+                                    
+                                    variant.inventory[storeName] = branchQty;
                                     
                                     if (branchQty !== branchOriginal) {
                                         updates.push({
