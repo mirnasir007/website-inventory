@@ -426,7 +426,8 @@
                                     store: currentStore,
                                     quantity: newQty,
                                     delta: newQty - originalQty,
-                                    collectionName: currentCollectionName
+                                    collectionName: currentCollectionName,
+                                    actor: currentStore
                                 });
                             }
                         } else {
@@ -437,7 +438,8 @@
                                 store: currentStore,
                                 quantity: newQty,
                                 delta: newQty - originalQty,
-                                collectionName: currentCollectionName
+                                collectionName: currentCollectionName,
+                                actor: currentStore
                             });
                         }
 
@@ -456,7 +458,8 @@
                                             store: storeName,
                                             quantity: branchQty,
                                             delta: branchQty - branchOriginal,
-                                            collectionName: currentCollectionName
+                                            collectionName: currentCollectionName,
+                                            actor: currentStore
                                         });
                                     }
                                 }
@@ -475,7 +478,8 @@
                         inventoryItemId: variant.inventoryItemId,
                         store: specificStore,
                         quantity: newQty,
-                        collectionName: currentCollectionName
+                        collectionName: currentCollectionName,
+                        actor: currentStore
                     });
                 } else if (type === 'reset_all') {
                     const stores = ['dhanmondi', 'banani', 'uttara'];
@@ -492,7 +496,8 @@
                             inventoryItemId: variant.inventoryItemId,
                             store: store,
                             quantity: 0,
-                            collectionName: currentCollectionName
+                            collectionName: currentCollectionName,
+                            actor: currentStore
                         });
                     });
                 }
@@ -585,7 +590,11 @@
                     div.innerHTML = `
                         <div class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] mt-0.5"><i class="fa-solid fa-clipboard-check"></i></div>
                         <div><p class="text-xs text-gray-800 leading-snug">${notif.msg}</p><p class="text-[10px] text-gray-400 mt-1 font-mono">${new Date(notif.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p></div>`;
-                    div.onclick = () => { applyNotificationFilter(notif.collection); document.getElementById('adminNotificationPopup').classList.remove('open'); };
+                    div.onclick = () => { 
+                        document.getElementById('searchInput').value = notif.collection; 
+                        triggerSearchProcess(); 
+                        document.getElementById('adminNotificationPopup').classList.remove('open'); 
+                    };
                     list.appendChild(div);
                 });
             } else {
