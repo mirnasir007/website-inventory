@@ -432,33 +432,34 @@
                         actor: currentStore
                     });
                 } else {
-                    // Admin should only push branch-specific updates. Backend auto-sums them to get the exact Shopify total.
+                    // Admin should push all branch data in a single request. Backend auto-sums them to get the exact Shopify total.
                     let adminTotal = 0;
+                    let adminBranchData = {};
                     
                     ['dhanmondi', 'banani', 'uttara'].forEach(storeName => {
                         const branchInput = document.getElementById(`fix-${storeName}-${variantId}`);
                         if (branchInput) {
                             const branchQty = parseInt(branchInput.value) || 0;
-                            const branchOriginal = parseInt(branchInput.getAttribute('data-original')) || 0;
                             
                             variant.inventory[storeName] = branchQty;
                             adminTotal += branchQty;
-                            
-                            // ALWAYS push the branch update to enforce accurate total sync
-                            updates.push({
-                                productId: product.id,
-                                variantId: variantId,
-                                inventoryItemId: inventoryItemId,
-                                store: storeName,
-                                quantity: branchQty,
-                                delta: branchQty - branchOriginal,
-                                collectionName: currentCollectionName,
-                                actor: currentStore
-                            });
+                            adminBranchData[storeName] = branchQty;
                         }
                     });
                     
                     variant.actualShopifyStock = adminTotal;
+                    
+                    // ALWAYS push the branch update to enforce accurate total sync
+                    updates.push({
+                        productId: product.id,
+                        variantId: variantId,
+                        inventoryItemId: inventoryItemId,
+                        store: 'admin',
+                        branchData: adminBranchData,
+                        quantity: adminTotal,
+                        collectionName: currentCollectionName,
+                        actor: currentStore
+                    });
                 }
                     });
                 } else if (type === 'branch') {
