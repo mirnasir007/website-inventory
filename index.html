@@ -416,51 +416,58 @@
                         const originalQty = parseInt(input.getAttribute('data-original')) || 0;
                         const variant = product.variants.find(v => v.id == variantId);
                         
- if (currentStore !== 'admin') {
-                    variant.inventory[currentStore] = newQty; 
-                    variant.actualShopifyStock = (variant.inventory.dhanmondi || 0) + (variant.inventory.banani || 0) + (variant.inventory.uttara || 0);
-                    
-                    // ALWAYS push the update to force Shopify to sync with explicit zero values
-                    updates.push({
-                        productId: product.id,
-                        variantId: variantId,
-                        inventoryItemId: inventoryItemId,
-                        store: currentStore,
-                        quantity: newQty,
-                        delta: newQty - originalQty,
-                        collectionName: currentCollectionName,
-                        actor: currentStore
-                    });
-                } else {
-                    // Admin should push all branch data in a single request. Backend auto-sums them to get the exact Shopify total.
-                    let adminTotal = 0;
-                    let adminBranchData = {};
-                    
-                    ['dhanmondi', 'banani', 'uttara'].forEach(storeName => {
-                        const branchInput = document.getElementById(`fix-${storeName}-${variantId}`);
-                        if (branchInput) {
-                            const branchQty = parseInt(branchInput.value) || 0;
+                        if (currentStore !== 'admin') {
+                            variant.inventory[currentStore] = newQty; 
+                            variant.actualShopifyStock = (variant.inventory.dhanmondi || 0) + (variant.inventory.banani || 0) + (variant.inventory.uttara || 0);
                             
-                            variant.inventory[storeName] = branchQty;
-                            adminTotal += branchQty;
-                            adminBranchData[storeName] = branchQty;
+                            if (newQty !== originalQty) {
+                                updates.push({
+                                    productId: product.id,
+                                    variantId: variantId,
+                                    inventoryItemId: inventoryItemId,
+                                    store: currentStore,
+                                    quantity: newQty,
+                                    delta: newQty - originalQty,
+                                    collectionName: currentCollectionName,
+                                    actor: currentStore
+                                });
+                            }
+                        } else {
+                            variant.actualShopifyStock = newQty;
+                            updates.push({
+                                productId: product.id,
+                                variantId: variantId,
+                                inventoryItemId: inventoryItemId,
+                                store: currentStore,
+                                quantity: newQty,
+                                delta: newQty - originalQty,
+                                collectionName: currentCollectionName,
+                                actor: currentStore
+                            });
+                            
+                            ['dhanmondi', 'banani', 'uttara'].forEach(storeName => {
+                                const branchInput = document.getElementById(`fix-${storeName}-${variantId}`);
+                                if (branchInput) {
+                                    const branchQty = parseInt(branchInput.value) || 0;
+                                    const branchOriginal = parseInt(branchInput.getAttribute('data-original')) || 0;
+                                    
+                                    variant.inventory[storeName] = branchQty;
+                                    
+                                    if (branchQty !== branchOriginal) {
+                                        updates.push({
+                                            productId: product.id,
+                                            variantId: variantId,
+                                            inventoryItemId: inventoryItemId,
+                                            store: storeName,
+                                            quantity: branchQty,
+                                            delta: branchQty - branchOriginal,
+                                            collectionName: currentCollectionName,
+                                            actor: currentStore
+                                        });
+                                    }
+                                }
+                            });
                         }
-                    });
-                    
-                    variant.actualShopifyStock = adminTotal;
-                    
-                    // ALWAYS push the branch update to enforce accurate total sync
-                    updates.push({
-                        productId: product.id,
-                        variantId: variantId,
-                        inventoryItemId: inventoryItemId,
-                        store: 'admin',
-                        branchData: adminBranchData,
-                        quantity: adminTotal,
-                        collectionName: currentCollectionName,
-                        actor: currentStore
-                    });
-                }
                     });
                 } else if (type === 'branch') {
                     const input = document.getElementById(`fix-${specificStore}-${specificVariantId}`);
@@ -821,9 +828,9 @@
                         <div class="flex flex-col items-end gap-1">
                             <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">${stockLabel}</span>
                             <div class="flex items-center gap-2">
-                                <button onclick="adjustInput('input-${variant.id}', -1)" class="w-7 h-7 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 text-gray-600 ${currentStore === 'admin' ? 'hidden' : ''}"><i class="fa-solid fa-minus text-[10px]"></i></button>
-                                <input type="number" id="input-${variant.id}" value="${currentStock}" min="0" data-original="${currentStock}" oninput="checkGlobalReset('${variant.id}')" class="main-input w-12 text-center font-bold text-gray-800 bg-white border border-gray-300 rounded py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none ${currentStore === 'admin' ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}" data-variant-id="${variant.id}" data-inventory-item-id="${variant.inventoryItemId}" ${currentStore === 'admin' ? 'readonly' : ''}>
-                                <button onclick="adjustInput('input-${variant.id}', 1)" class="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center hover:bg-gray-800 ${currentStore === 'admin' ? 'hidden' : ''}"><i class="fa-solid fa-plus text-[10px]"></i></button>
+                                <button onclick="adjustInput('input-${variant.id}', -1)" class="w-7 h-7 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 text-gray-600"><i class="fa-solid fa-minus text-[10px]"></i></button>
+                                <input type="number" id="input-${variant.id}" value="${currentStock}" min="0" data-original="${currentStock}" oninput="checkGlobalReset('${variant.id}')" class="main-input w-12 text-center font-bold text-gray-800 bg-white border border-gray-300 rounded py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none" data-variant-id="${variant.id}" data-inventory-item-id="${variant.inventoryItemId}">
+                                <button onclick="adjustInput('input-${variant.id}', 1)" class="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center hover:bg-gray-800"><i class="fa-solid fa-plus text-[10px]"></i></button>
                             </div>
                         </div>
                     </div>
