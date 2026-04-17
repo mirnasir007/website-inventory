@@ -415,7 +415,8 @@
                             inventoryItemId: inventoryItemId,
                             store: currentStore,
                             quantity: newQty,
-                            collectionName: currentCollectionName
+                            collectionName: currentCollectionName,
+                            sku: variant.sku
                         });
                     });
                 } else if (type === 'branch') {
@@ -430,7 +431,8 @@
                         inventoryItemId: variant.inventoryItemId,
                         store: specificStore,
                         quantity: newQty,
-                        collectionName: currentCollectionName
+                        collectionName: currentCollectionName,
+                        sku: variant.sku
                     });
                 } else if (type === 'reset_all') {
                     const stores = ['dhanmondi', 'banani', 'uttara'];
@@ -447,7 +449,8 @@
                             inventoryItemId: variant.inventoryItemId,
                             store: store,
                             quantity: 0,
-                            collectionName: currentCollectionName
+                            collectionName: currentCollectionName,
+                            sku: variant.sku
                         });
                     });
                 }
@@ -543,7 +546,7 @@
                     div.className = 'p-3 hover:bg-gray-50 cursor-pointer flex items-start gap-2 border-b border-gray-50';
                     div.innerHTML = `
                         <div class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] mt-0.5"><i class="fa-solid fa-clipboard-check"></i></div>
-                        <div><p class="text-xs text-gray-800 leading-snug">${notif.msg.replace('updated', 'updated Product ID:')}</p><p class="text-[10px] text-gray-400 mt-1 font-mono">${new Date(notif.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p></div>`;
+                        <div><p class="text-xs text-gray-800 leading-snug">${notif.msg.replace('updated', 'updated SKU:')}</p><p class="text-[10px] text-gray-400 mt-1 font-mono">${new Date(notif.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p></div>`;
                     div.onclick = () => { searchProductById(notif.collection); document.getElementById('adminNotificationPopup').classList.remove('open'); };
                     list.appendChild(div);
                 });
@@ -921,7 +924,8 @@
                             store: 'admin', 
                             quantity: 0,
                             action: 'updateInventory',
-                            collectionName: 'Bulk-Action'
+                            collectionName: 'Bulk-Action',
+                            sku: 'Bulk Zero & Draft'
                         });
                     });
                 }
