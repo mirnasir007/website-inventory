@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Website Inventory</title>
-    <link rel="icon" type="image/jpeg" href="https://i.postimg.cc/C5QZmD4r/482011194-948707940770966-7327635956248138063-n.jpg">
     
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -53,8 +52,8 @@
 <body class="text-slate-800 relative">
 
     <script>
-        // --- NODE.JS LIVE SERVER URL ---
-        const WEB_APP_URL = "https://inventory-backend-rwfi.onrender.com/api";
+        // *** REPLACE THIS URL WITH YOUR DEPLOYMENT URL ***
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzZLIADFPhsYJW8wABKi3CGBvoRklmMAD5QMZJVntCoJBeJVT7JCKQrZbJ7vehVZII/exec";
         
         window.addEventListener('DOMContentLoaded', () => {
             const manifest = {
@@ -95,7 +94,7 @@
                         <option value="uttara">Uttara Store</option>
                     </select>
                     <div id="passwordFieldWrapper" class="hidden">
-                        <input type="password" id="loginPassword" placeholder="Enter Store Password" onkeydown="if(event.key === 'Enter' && !document.getElementById('loginBtn').disabled) attemptLogin()" class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500">
+                        <input type="password" id="loginPassword" placeholder="Enter Store Password" class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500">
                     </div>
                     <button id="loginBtn" onclick="attemptLogin()" class="w-full bg-gray-900 text-white font-bold py-3 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2" disabled>
                         <span>Access Dashboard</span>
@@ -159,78 +158,62 @@
                         <div class="max-h-48 overflow-y-auto custom-scroll" id="dropdownListContainer"></div>
                     </div>
                 </div>
-                
                 <button onclick="clearFilters()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center border border-gray-300 transition-colors" title="Reset"><i class="fa-solid fa-rotate-left text-xs"></i></button>
-                
                 <div class="flex-1 min-w-0 flex gap-2 items-center">
                     <div class="relative flex-1 min-w-0">
                         <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400 text-xs"></i>
                         <input type="text" id="searchInput" placeholder="Search..." class="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-medium focus:outline-none focus:border-green-500">
                     </div>
-                    
-                    <button onclick="triggerSearchProcess()" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-3 md:px-4 py-2 rounded-lg transition-colors flex-shrink-0 shadow-sm">
+                    <button onclick="triggerSearchProcess()" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors flex-shrink-0 shadow-sm">
                         Search
                     </button>
-                    
-                    <label class="hidden md:flex items-center gap-1.5 cursor-pointer bg-white border border-gray-300 px-2.5 py-2 rounded-lg shadow-sm hover:bg-gray-50 flex-shrink-0 transition-colors" title="Auto-trim last 4 digits for Scanner">
+                    <label class="flex items-center gap-1.5 cursor-pointer bg-white border border-gray-300 px-2.5 py-2 rounded-lg shadow-sm hover:bg-gray-50 flex-shrink-0 transition-colors" title="Auto-trim last 4 digits for Scanner">
                         <input type="checkbox" id="autoTrimCheck" class="w-3.5 h-3.5 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer">
                         <span class="text-[10px] font-bold text-gray-700 uppercase">Auto</span>
                     </label>
                 </div>
             </div>
-
-            <div id="statsBar" class="hidden flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
-                <h2 class="text-lg font-bold text-gray-700">Inventory</h2>
-                <div class="flex items-center gap-2">
-                    <select id="sortFilter" class="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-green-500 bg-white text-gray-700 h-8">
-                        <option value="STATUS_ACTIVE">Status: Active First</option>
-                        <option value="CREATED_AT:true" selected>Date, new to old</option>
-                        <option value="CREATED_AT:false">Date, old to new</option>
-                        <option value="TITLE:false">Alphabetically, A-Z</option>
-                        <option value="TITLE:true">Alphabetically, Z-A</option>
-                        <option value="PRICE:false">Price, low to high</option>
-                        <option value="PRICE:true">Price, high to low</option>
-                        <option value="BEST_SELLING:false">Best selling</option>
-                        <option value="MANUAL:false">Featured</option>
-                    </select>
-                    <div class="text-xs text-gray-500 bg-white px-2 py-1 rounded border h-8 flex items-center">Count: <span id="productCount" class="font-bold text-black ml-1">0</span></div>
-                </div>
-            </div>
-
-            <div id="adminBulkBar" class="hidden mt-3 p-3 bg-red-50 border border-red-100 rounded-lg flex flex-col md:flex-row justify-between items-center gap-3">
-                <div class="flex flex-wrap items-center gap-2">
-                    <p class="text-xs font-bold text-red-600 uppercase mr-2"><i class="fa-solid fa-screwdriver-wrench mr-1"></i> Admin Tools</p>
-                    <button onclick="autoSelectZeroStock()" class="text-[10px] bg-white border border-red-200 text-gray-700 px-3 py-1.5 rounded hover:bg-red-100 transition-colors font-semibold">
-                        1. Empty Active
-                    </button>
-                    <button onclick="selectAllActive()" class="text-[10px] bg-white border border-blue-200 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-100 transition-colors font-semibold">
-                        2. All Active
-                    </button>
-                    <button onclick="selectBranchStock()" class="text-[10px] bg-white border border-purple-200 text-purple-700 px-3 py-1.5 rounded hover:bg-purple-100 transition-colors font-semibold">
-                        3. Has Branch Data
-                    </button>
-                    <button onclick="clearSelection()" class="text-[10px] bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors font-semibold">
-                        <i class="fa-solid fa-eraser mr-1"></i> Clear
-                    </button>
-                </div>
-                <div class="flex gap-2 w-full md:w-auto">
-                    <button id="clearBranchesBtn" onclick="executeClearBranches()" class="bg-purple-600 text-white text-[10px] font-bold px-4 py-1.5 rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-1" disabled>
-                        Clear Branch Data
-                    </button>
-                    <button id="zeroDraftBtn" onclick="executeZeroDraft()" class="bg-red-600 text-white text-[10px] font-bold px-4 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-1" disabled>
-                        Zero Draft (<span id="selectedCount">0</span>)
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
 
-    <div class="max-w-full mx-auto px-4 py-4 pt-2">
+    <div class="max-w-full mx-auto px-4 py-4">
+        
+        <div id="statsBar" class="hidden flex justify-between items-center mb-4 max-w-7xl mx-auto">
+            <h2 class="text-lg font-bold text-gray-700">Inventory</h2>
+            <div class="flex items-center gap-2">
+                <select id="sortFilter" class="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-green-500 bg-white text-gray-700 h-8">
+                    <option value="STATUS_ACTIVE">Status: Active First</option>
+                    <option value="CREATED_AT:true" selected>Date, new to old</option>
+                    <option value="CREATED_AT:false">Date, old to new</option>
+                    <option value="TITLE:false">Alphabetically, A-Z</option>
+                    <option value="TITLE:true">Alphabetically, Z-A</option>
+                    <option value="PRICE:false">Price, low to high</option>
+                    <option value="PRICE:true">Price, high to low</option>
+                    <option value="BEST_SELLING:false">Best selling</option>
+                    <option value="MANUAL:false">Featured</option>
+                </select>
+                <div class="text-xs text-gray-500 bg-white px-2 py-1 rounded border h-8 flex items-center">Count: <span id="productCount" class="font-bold text-black ml-1">0</span></div>
+            </div>
+        </div>
+
+        <div id="adminBulkBar" class="hidden mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex justify-between items-center max-w-7xl mx-auto">
+            <div class="flex items-center gap-3">
+                <p class="text-xs font-bold text-red-600 uppercase"><i class="fa-solid fa-screwdriver-wrench mr-1"></i> Admin Tools</p>
+                <button onclick="autoSelectZeroStock()" class="text-[10px] bg-white border border-red-200 text-gray-700 px-3 py-1.5 rounded hover:bg-red-100 transition-colors font-semibold">
+                    1. Select Empty Active
+                </button>
+            </div>
+            <button id="zeroDraftBtn" onclick="executeZeroDraft()" class="bg-red-600 text-white text-[10px] font-bold px-4 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
+                2. Zero Draft (<span id="selectedCount">0</span>)
+            </button>
+        </div>
+
         <div id="initialState" class="text-center py-24">
             <div class="bg-white p-8 rounded-2xl shadow-sm inline-block border border-gray-100 mx-4">
                 <div class="text-green-600 text-5xl mb-4"><i class="fa-solid fa-boxes-stacked"></i></div>
                 <h2 class="text-xl font-bold text-gray-700 mb-2">Inventory Ready</h2>
                 <p class="text-sm text-gray-500">Select a collection or search to begin.</p>
+                <button id="installAppBtn" class="hidden mt-6 bg-gray-900 text-white text-xs px-4 py-2 rounded-full mx-auto"><i class="fa-solid fa-download mr-1"></i> Install App</button>
             </div>
         </div>
 
@@ -270,9 +253,6 @@
             <div class="bg-gray-50 px-5 py-3 border-t flex justify-between items-center gap-2 flex-shrink-0">
                 <button id="modalCancelBtn" onclick="closeModal()" class="px-3 py-2 text-xs font-medium text-gray-600 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">Cancel</button>
                 <div class="flex gap-2">
-                    <button onclick="zeroAllVariantsInModal()" class="px-4 py-2 bg-red-100 text-red-600 text-xs font-bold uppercase rounded hover:bg-red-600 hover:text-white transition-colors flex items-center gap-1">
-                        <i class="fa-solid fa-rotate-left"></i> Zero All
-                    </button>
                     <button id="saveBtn" onclick="saveInventoryChanges('main')" class="px-4 py-2 bg-black text-white text-xs font-bold uppercase rounded hover:bg-gray-800 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
                         <span id="saveBtnText">Update</span>
                     </button>
@@ -293,7 +273,7 @@
                     <button onclick="closeConfirmModal()" class="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
                         Cancel
                     </button>
-                    <button id="confirmActionBtn" onclick="finalizeZeroDraft()" class="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 shadow-md transition-transform active:scale-95">
+                    <button onclick="finalizeZeroDraft()" class="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 shadow-md transition-transform active:scale-95">
                         Yes, Confirm
                     </button>
                 </div>
@@ -312,11 +292,10 @@
                      <i class="fa-solid fa-triangle-exclamation text-3xl"></i>
                 </div>
                 <h2 class="text-xl font-bold text-red-600">Update Failed!</h2>
-                <p id="errorModalMsg" class="text-xs text-red-500 mt-2 font-mono">Unknown Error</p>
             </div>
             <div class="p-6">
-                <button onclick="document.getElementById('errorModal').classList.add('hidden')" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-rotate-right"></i> OK, Try Again
+                <button onclick="location.reload()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> OK, Refresh
                 </button>
             </div>
         </div>
@@ -334,6 +313,7 @@
         let selectedCollectionId = "";
         let notificationInterval = null;
 
+        // --- AUTH & PERSISTENCE ---
         const loginStoreSelect = document.getElementById('loginStoreSelect');
         const passwordFieldWrapper = document.getElementById('passwordFieldWrapper');
         const loginBtn = document.getElementById('loginBtn');
@@ -348,7 +328,22 @@
             }
         });
 
-        loginStoreSelect.addEventListener('change', function() { if(this.value) { passwordFieldWrapper.classList.remove('hidden'); loginBtn.disabled = false; } });
+        loginStoreSelect.addEventListener('change', function() { 
+            if(this.value) { 
+                passwordFieldWrapper.classList.remove('hidden'); 
+                loginBtn.disabled = false; 
+            } 
+        });
+
+        // Trigger login on Enter key press
+        [loginStoreSelect, document.getElementById('loginPassword')].forEach(element => {
+            element.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !loginBtn.disabled) {
+                    e.preventDefault();
+                    attemptLogin();
+                }
+            });
+        });
 
         async function attemptLogin() {
             const selectedStore = loginStoreSelect.value;
@@ -359,7 +354,6 @@
             try {
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'login', store: selectedStore, password: password })
                 });
                 const data = await response.json();
@@ -381,7 +375,7 @@
 
         function logout() { localStorage.removeItem('storeUser'); location.reload(); }
 
-        // --- UPDATE INVENTORY ---
+        // --- INVENTORY UPDATE LOGIC (BATCH MODE) ---
         async function saveInventoryChanges(type, specificVariantId = null, specificStore = null) {
             if (!currentEditingProductId) return;
 
@@ -389,8 +383,11 @@
             const closeBtn = document.getElementById('modalCloseBtn');
             const cancelBtn = document.getElementById('modalCancelBtn');
 
-            if (type === 'branch') btn = document.querySelector(`button[onclick="saveInventoryChanges('branch', '${specificVariantId}', '${specificStore}')"]`);
-            else if (type === 'reset_all') btn = document.querySelector(`button[onclick="saveInventoryChanges('reset_all', '${specificVariantId}')"]`);
+            if (type === 'branch') {
+                btn = document.querySelector(`button[onclick="saveInventoryChanges('branch', '${specificVariantId}', '${specificStore}')"]`);
+            } else if (type === 'reset_all') {
+                btn = document.querySelector(`button[onclick="saveInventoryChanges('reset_all', '${specificVariantId}')"]`);
+            }
 
             const originalText = btn.innerHTML;
             btn.disabled = true;
@@ -409,56 +406,17 @@
                         const variantId = input.getAttribute('data-variant-id');
                         const inventoryItemId = input.getAttribute('data-inventory-item-id');
                         const newQty = parseInt(input.value) || 0;
-                        const originalQty = parseInt(input.getAttribute('data-original')) || 0;
                         const variant = product.variants.find(v => v.id == variantId);
-                        
-                        if (currentStore !== 'admin') {
-                            variant.inventory[currentStore] = newQty; 
-                            if (newQty !== originalQty) {
-                                updates.push({
-                                    productId: product.id,
-                                    variantId: variantId,
-                                    inventoryItemId: inventoryItemId,
-                                    store: currentStore,
-                                    quantity: newQty,
-                                    productName: product.title, // Fixed logic: Sends Title instead of Collection
-                                    actor: currentStore
-                                });
-                            }
-                        } else {
-                            variant.actualShopifyStock = newQty;
-                            if (newQty !== originalQty) {
-                                updates.push({
-                                    productId: product.id,
-                                    variantId: variantId,
-                                    inventoryItemId: inventoryItemId,
-                                    store: currentStore,
-                                    quantity: newQty,
-                                    productName: product.title, 
-                                    actor: currentStore
-                                });
-                            }
-                            
-                            ['dhanmondi', 'banani', 'uttara'].forEach(storeName => {
-                                const branchInput = document.getElementById(`fix-${storeName}-${variantId}`);
-                                if (branchInput) {
-                                    const branchQty = parseInt(branchInput.value) || 0;
-                                    const branchOriginal = parseInt(branchInput.getAttribute('data-original')) || 0;
-                                    variant.inventory[storeName] = branchQty;
-                                    if (branchQty !== branchOriginal) {
-                                        updates.push({
-                                            productId: product.id,
-                                            variantId: variantId,
-                                            inventoryItemId: inventoryItemId,
-                                            store: storeName,
-                                            quantity: branchQty,
-                                            productName: product.title,
-                                            actor: currentStore
-                                        });
-                                    }
-                                }
-                            });
-                        }
+                        variant.inventory[currentStore] = newQty; // Optimistic update (optional)
+
+                        updates.push({
+                            productId: product.id,
+                            variantId: variantId,
+                            inventoryItemId: inventoryItemId,
+                            store: currentStore,
+                            quantity: newQty,
+                            collectionName: currentCollectionName
+                        });
                     });
                 } else if (type === 'branch') {
                     const input = document.getElementById(`fix-${specificStore}-${specificVariantId}`);
@@ -467,8 +425,12 @@
                     variant.inventory[specificStore] = newQty;
 
                     updates.push({
-                        productId: product.id, variantId: specificVariantId, inventoryItemId: variant.inventoryItemId,
-                        store: specificStore, quantity: newQty, productName: product.title, actor: currentStore
+                        productId: product.id,
+                        variantId: specificVariantId,
+                        inventoryItemId: variant.inventoryItemId,
+                        store: specificStore,
+                        quantity: newQty,
+                        collectionName: currentCollectionName
                     });
                 } else if (type === 'reset_all') {
                     const stores = ['dhanmondi', 'banani', 'uttara'];
@@ -478,43 +440,65 @@
                         variant.inventory[store] = 0;
                         const input = document.getElementById(`fix-${store}-${specificVariantId}`);
                         if (input) input.value = 0;
+
                         updates.push({
-                            productId: product.id, variantId: specificVariantId, inventoryItemId: variant.inventoryItemId,
-                            store: store, quantity: 0, productName: product.title, actor: currentStore
+                            productId: product.id,
+                            variantId: specificVariantId,
+                            inventoryItemId: variant.inventoryItemId,
+                            store: store,
+                            quantity: 0,
+                            collectionName: currentCollectionName
                         });
                     });
                 }
 
                 if (updates.length > 0) {
-                    const payload = { action: 'batchUpdateInventory', updates: updates };
-                    const response = await fetch(WEB_APP_URL, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                    const requests = updates.map(updateData => {
+                        const payload = {
+                            action: 'updateInventory',
+                            ...updateData
+                        };
+                        
+                        if (type === 'branch') payload.targetBranch = specificStore;
+                        if (type === 'reset_all') payload.targetBranch = 'reset_all';
+
+                        return fetch(WEB_APP_URL, {
+                            method: 'POST',
+                            body: JSON.stringify(payload)
+                        }).then(res => res.json());
                     });
-                    const result = await response.json();
+
+                    const results = await Promise.all(requests);
+                    const hasError = results.some(res => res.status === 'error');
                     
-                    if (result.status === 'success') {
-                        if (type === 'branch') showToast(`${specificStore} Updated!`);
-                        else if (type === 'reset_all') showToast("All Branches Reset!");
-                        else {
+                    if (!hasError) {
+                        if (type === 'branch') {
+                            showToast(`${specificStore} Updated!`);
+                        } else if (type === 'reset_all') {
+                            showToast("All Branches Reset!");
+                        } else {
                             closeModal();
-                            performSearch(document.getElementById('searchInput').value, selectedCollectionId, null);
+                            performSearch(document.getElementById('searchInput').value, selectedCollectionId);
                             showToast("Updated Successfully!");
                         }
-                    } else { throw new Error(result.message || 'Update failed'); }
-                } else { closeModal(); }
+                    } else {
+                        const errorMsg = results.find(res => res.status === 'error')?.message || 'Update failed';
+                        throw new Error(errorMsg);
+                    }
+                }
 
             } catch (error) {
                 console.error(error);
-                const msgEl = document.getElementById('errorModalMsg');
-                if(msgEl) msgEl.innerText = error.message;
                 document.getElementById('errorModal').classList.remove('hidden');
             } finally {
-                btn.disabled = false; btn.innerHTML = originalText;
+                btn.disabled = false;
+                btn.innerHTML = originalText;
                 if (closeBtn) closeBtn.disabled = false;
                 if (cancelBtn) cancelBtn.disabled = false;
             }
         }
 
+        // --- FETCHING ---
         async function loadInitialData() {
             toggleLoading(true, "Loading...");
             try {
@@ -540,7 +524,9 @@
             try {
                 const response = await fetch(`${WEB_APP_URL}?action=getInitialData&store=${currentStore}`);
                 const data = await response.json();
-                if(data.status === 'success' && data.notifications) handleNotifications(data.notifications);
+                if(data.status === 'success' && data.notifications) {
+                    handleNotifications(data.notifications);
+                }
             } catch(e) {}
         }
 
@@ -549,7 +535,7 @@
             const list = document.getElementById('adminNotificationList');
             const dot = document.getElementById('adminBellDot');
             bellContainer.classList.remove('hidden');
-            if (notifications && notifications.length > 0) {
+            if (notifications.length > 0) {
                 dot.style.display = 'block';
                 list.innerHTML = '';
                 notifications.forEach(notif => {
@@ -557,12 +543,8 @@
                     div.className = 'p-3 hover:bg-gray-50 cursor-pointer flex items-start gap-2 border-b border-gray-50';
                     div.innerHTML = `
                         <div class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] mt-0.5"><i class="fa-solid fa-clipboard-check"></i></div>
-                        <div><p class="text-xs text-gray-800 leading-snug">${notif.msg}</p><p class="text-[10px] text-gray-400 mt-1 font-mono">${new Date(notif.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p></div>`;
-                    div.onclick = () => { 
-                        document.getElementById('searchInput').value = notif.collection; 
-                        triggerSearchProcess(); 
-                        document.getElementById('adminNotificationPopup').classList.remove('open'); 
-                    };
+                        <div><p class="text-xs text-gray-800 leading-snug">${notif.msg.replace('updated', 'updated Product ID:')}</p><p class="text-[10px] text-gray-400 mt-1 font-mono">${new Date(notif.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p></div>`;
+                    div.onclick = () => { searchProductById(notif.collection); document.getElementById('adminNotificationPopup').classList.remove('open'); };
                     list.appendChild(div);
                 });
             } else {
@@ -663,6 +645,7 @@
             if(show) { loader.classList.remove('hidden'); if(!lastCursor) { grid.classList.add('hidden'); empty.classList.add('hidden'); stats.classList.add('hidden'); } } else { loader.classList.add('hidden'); }
         }
         
+        // --- RENDER FUNCTION ---
         function renderProducts() {
             const grid = document.getElementById('productGrid');
             const emptyState = document.getElementById('emptyState');
@@ -682,8 +665,11 @@
                 });
             }
 
-            if (currentStore === 'admin') adminBar.classList.remove('hidden');
-            else adminBar.classList.add('hidden');
+            if (currentStore === 'admin') {
+                adminBar.classList.remove('hidden');
+            } else {
+                adminBar.classList.add('hidden');
+            }
 
             statsBar.classList.remove('hidden'); grid.innerHTML = ''; countSpan.innerText = products.length;
             if (products.length === 0) { emptyState.classList.remove('hidden'); grid.classList.add('hidden'); loadMoreBtn.classList.add('hidden'); return; } 
@@ -749,7 +735,7 @@
             container.innerHTML = '';
             
             product.variants.forEach(variant => {
-                const currentStock = currentStore === 'admin' ? variant.actualShopifyStock : (variant.inventory[currentStore] || 0);
+                const currentStock = variant.inventory[currentStore] || 0;
                 let stockLocation = [];
                 if ((variant.inventory.dhanmondi || 0) > 0) stockLocation.push("Dhanmondi");
                 if ((variant.inventory.banani || 0) > 0) stockLocation.push("Banani");
@@ -763,13 +749,17 @@
                     <div class="mt-2 pt-2 border-t border-gray-100">
                         <div class="flex justify-between items-center mb-2">
                             <p class="text-[9px] text-gray-400 font-bold uppercase">Branch Corrections</p>
+                            <button onclick="saveInventoryChanges('reset_all', '${variant.id}')" class="bg-red-100 hover:bg-red-600 hover:text-white text-red-600 text-[9px] px-2 py-1 rounded transition-colors font-bold uppercase tracking-wider">
+                                <i class="fa-solid fa-trash-can mr-1"></i> Reset All to 0
+                            </button>
                         </div>
                         <div class="grid grid-cols-3 gap-2">
                             ${['dhanmondi', 'banani', 'uttara'].map(store => `
                                 <div class="flex flex-col">
                                     <label class="text-[8px] uppercase text-gray-500 mb-0.5">${store.substr(0,3)}</label>
                                     <div class="flex items-center gap-1">
-                                        <input type="number" id="fix-${store}-${variant.id}" value="${variant.inventory[store] || 0}" data-original="${variant.inventory[store] || 0}" class="w-full text-xs border border-gray-200 rounded p-1 text-center bg-gray-50 focus:bg-white">
+                                        <input type="number" id="fix-${store}-${variant.id}" value="${variant.inventory[store] || 0}" class="w-full text-xs border border-gray-200 rounded p-1 text-center bg-gray-50 focus:bg-white">
+                                        <button onclick="saveInventoryChanges('branch', '${variant.id}', '${store}')" class="text-[10px] bg-gray-200 hover:bg-black hover:text-white rounded px-1.5 py-1 transition-colors"><i class="fa-solid fa-check"></i></button>
                                     </div>
                                 </div>
                             `).join('')}
@@ -790,7 +780,7 @@
                             <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">${stockLabel}</span>
                             <div class="flex items-center gap-2">
                                 <button onclick="adjustInput('input-${variant.id}', -1)" class="w-7 h-7 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 text-gray-600"><i class="fa-solid fa-minus text-[10px]"></i></button>
-                                <input type="number" id="input-${variant.id}" value="${currentStock}" min="0" data-original="${currentStock}" class="main-input w-12 text-center font-bold text-gray-800 bg-white border border-gray-300 rounded py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none" data-variant-id="${variant.id}" data-inventory-item-id="${variant.inventoryItemId}">
+                                <input type="number" id="input-${variant.id}" value="${currentStock}" min="0" class="main-input w-12 text-center font-bold text-gray-800 bg-white border border-gray-300 rounded py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none" data-variant-id="${variant.id}" data-inventory-item-id="${variant.inventoryItemId}">
                                 <button onclick="adjustInput('input-${variant.id}', 1)" class="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center hover:bg-gray-800"><i class="fa-solid fa-plus text-[10px]"></i></button>
                             </div>
                         </div>
@@ -802,52 +792,72 @@
             document.getElementById('variantModal').classList.remove('hidden');
         }
 
-        function adjustInput(inputId, amount) { 
-            const input = document.getElementById(inputId); 
-            let val = parseInt(input.value) || 0; 
-            val += amount; 
-            if (val < 0) val = 0; 
-            input.value = val; 
-        }
-
-        function zeroAllVariantsInModal() {
-            const inputs = document.querySelectorAll('#modalVariantsContainer input.main-input');
-            inputs.forEach(input => {
-                input.value = 0;
-            });
-            showToast("All variants set to 0. Click Update to save.");
-        }
-
+        function adjustInput(inputId, amount) { const input = document.getElementById(inputId); let val = parseInt(input.value) || 0; val += amount; if (val < 0) val = 0; input.value = val; }
         function closeModal() { document.getElementById('variantModal').classList.add('hidden'); currentEditingProductId = null; }
         function openImagePreview(src, title) { const m = document.getElementById('imagePreviewModal'); document.getElementById('previewImage').src = src; document.getElementById('previewTitle').innerText = title; m.classList.remove('hidden'); setTimeout(() => m.classList.remove('opacity-0'), 10); }
         function closeImagePreview(e, force) { if (force || e.target.id === 'imagePreviewModal') { const m = document.getElementById('imagePreviewModal'); m.classList.add('opacity-0'); setTimeout(() => m.classList.add('hidden'), 300); } }
         function showToast(msg) { const t = document.getElementById('toast'); document.getElementById('toastMsg').innerText = msg; t.classList.remove('translate-y-20', 'opacity-0'); setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000); }
+        function renderNotifications(notifications) {
+            const list = document.getElementById('notificationList');
+            list.innerHTML = ''; 
+            notifications.forEach(notif => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center bg-white p-2 rounded border border-blue-100 shadow-sm';
+                item.innerHTML = `<div class="flex items-center gap-2"><span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"><i class="fa-solid fa-pen"></i></span><div class="text-xs text-gray-700 truncate max-w-[200px]"><span class="font-bold text-gray-900">${notif.msg.split(' updated ')[0]}</span> updated <span class="font-bold text-blue-600">${notif.collection}</span></div></div><button onclick="applyNotificationFilter('${notif.collection}')" class="text-[10px] bg-gray-900 text-white px-3 py-1 rounded transition-colors">View</button>`;
+                list.appendChild(item);
+            });
+            document.getElementById('notificationsContainer').classList.remove('hidden');
+        }
+        function applyNotificationFilter(collectionTitle) {
+            const list = document.querySelectorAll('.option');
+            let foundId = "";
+            list.forEach(opt => { if(opt.innerText === collectionTitle) foundId = opt.dataset.value; });
+            if(foundId) selectCollection(foundId, collectionTitle);
+        }
 
+        function searchProductById(productId) {
+            clearFilters();
+            document.getElementById('searchInput').value = productId;
+            triggerSearchProcess();
+        }
+
+        // 1. Kono auto-search hobena normal typing e, API call onek save hobe
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            // Box e kisu likhle auto search off, user button e click korbe ba enter dibe
+        });
+
+        // 2. Barcode scanner scan korle automatic 'Enter' press hoy, sheta catch korbo
         document.getElementById('searchInput').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                triggerSearchProcess(); 
+                triggerSearchProcess(); // Scanner theke scan hole auto search hobe
             }
         });
 
+        // 3. Search Button e click korle ba Scanner scan korle ei function cholbe
         function triggerSearchProcess() {
             let val = document.getElementById('searchInput').value.trim();
             if (!val) return;
+
+            // Check if "Auto" checkbox is ticked
             const isAutoTrimEnabled = document.getElementById('autoTrimCheck').checked;
+
+            // User er idea: Auto tick thakle ebong 7 character er theke boro holei shudhu katbe
             if (isAutoTrimEnabled && val.length > 7) {
                 val = val.substring(0, val.length - 4);
-                document.getElementById('searchInput').value = val; 
+                document.getElementById('searchInput').value = val; // Box e update kora value dekhabe
             }
+
+            // Search trigger korbe, sathe dropdown filter thakle shetao dhore rakhbe
             lastCursor = null; 
             performSearch(val, selectedCollectionId);
         }
 
+        // --- BULK ACTION HELPERS ---
         function updateBulkCount() {
             const count = document.querySelectorAll('.bulk-check:checked').length;
             document.getElementById('selectedCount').innerText = count;
             document.getElementById('zeroDraftBtn').disabled = count === 0;
-            const clearBtn = document.getElementById('clearBranchesBtn');
-            if (clearBtn) clearBtn.disabled = count === 0;
         }
 
         function autoSelectZeroStock() {
@@ -856,140 +866,96 @@
             checkboxes.forEach(box => {
                 const status = box.getAttribute('data-status');
                 const stock = parseInt(box.getAttribute('data-stock'));
-                if (status === 'ACTIVE' && stock <= 0) { box.checked = true; found++; } else { box.checked = false; }
+                
+                // Active & No Branch Stock (Stock <= 0)
+                if (status === 'ACTIVE' && stock <= 0) {
+                    box.checked = true;
+                    found++;
+                } else {
+                    box.checked = false;
+                }
             });
             updateBulkCount();
-            if(found > 0) showToast(`${found} Empty Active Products Selected`); else showToast("No Empty Active Products Found");
+            if(found > 0) showToast(`${found} Empty Active Products Selected`);
+            else showToast("No Empty Active Products Found");
         }
 
-        function closeConfirmModal() { document.getElementById('confirmationModal').classList.add('hidden'); }
+        // --- UPDATED POPUP LOGIC (BATCHED) ---
+        function closeConfirmModal() {
+            document.getElementById('confirmationModal').classList.add('hidden');
+        }
 
         function executeZeroDraft() {
             const checkboxes = document.querySelectorAll('.bulk-check:checked');
             if (checkboxes.length === 0) return;
+
             const msg = `You are about to Zero & Draft <b>${checkboxes.length} products</b>.<br>This cannot be undone.`;
             document.getElementById('confirmMsg').innerHTML = msg;
-            const confirmBtn = document.getElementById('confirmActionBtn');
-            confirmBtn.setAttribute('onclick', 'finalizeZeroDraft()');
             document.getElementById('confirmationModal').classList.remove('hidden');
-        }
-
-        function selectAllActive() {
-            const checkboxes = document.querySelectorAll('.bulk-check');
-            let found = 0;
-            checkboxes.forEach(box => {
-                const status = box.getAttribute('data-status');
-                if (status === 'ACTIVE') { box.checked = true; found++; } else { box.checked = false; }
-            });
-            updateBulkCount();
-            if(found > 0) showToast(`${found} Active Products Selected`); else showToast("No Active Products Found");
-        }
-
-        function clearSelection() {
-            const checkboxes = document.querySelectorAll('.bulk-check');
-            let wasSelected = false;
-            checkboxes.forEach(box => { if(box.checked) wasSelected = true; box.checked = false; });
-            updateBulkCount();
-            if(wasSelected) showToast("Selection Cleared");
         }
 
         async function finalizeZeroDraft() {
             closeConfirmModal();
+
             const checkboxes = document.querySelectorAll('.bulk-check:checked');
             if (checkboxes.length === 0) return;
+
             const btn = document.getElementById('zeroDraftBtn');
             const originalText = btn.innerHTML;
             btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
 
-            let selectedProducts = [];
+            let allUpdates = [];
+
             for (const box of checkboxes) {
                 const productId = box.getAttribute('data-id');
                 const product = products.find(p => p.id == productId);
-                if (product) selectedProducts.push(product);
-            }
-
-            if (selectedProducts.length > 0) {
-                const chunkSize = 10; const chunks = [];
-                for (let i = 0; i < selectedProducts.length; i += chunkSize) chunks.push(selectedProducts.slice(i, i + chunkSize));
-                let hasError = false;
-
-                for (let i = 0; i < chunks.length; i++) {
-                    const processedProducts = Math.min(((i + 1) * chunkSize), checkboxes.length);
-                    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Updating ${processedProducts} / ${checkboxes.length}...`;
-                    try {
-                        const payload = { action: 'bulkZeroDraft', products: chunks[i] };
-                        const response = await fetch(WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                        const result = await response.json();
-                        if (result.status !== 'success') { hasError = true; break; }
-                    } catch (e) { hasError = true; break; }
+                
+                if (product) {
+                    // Collect updates for batch processing
+                    product.variants.forEach(v => {
+                        allUpdates.push({
+                            productId: product.id,
+                            variantId: v.id,
+                            inventoryItemId: v.inventoryItemId,
+                            store: 'admin', 
+                            quantity: 0,
+                            action: 'updateInventory',
+                            collectionName: 'Bulk-Action'
+                        });
+                    });
                 }
-                if (!hasError) {
-                    showToast(`Success! Products zeroed and drafted.`);
-                    products = []; document.getElementById('productGrid').innerHTML = '';
-                    performSearch(document.getElementById('searchInput').value, selectedCollectionId);
-                } else { showToast("Error occurred during bulk update!"); }
-            }
-            btn.innerHTML = originalText; btn.disabled = false;
-        }
-
-        function selectBranchStock() {
-            const checkboxes = document.querySelectorAll('.bulk-check');
-            let found = 0;
-            checkboxes.forEach(box => {
-                const stock = parseInt(box.getAttribute('data-stock')) || 0;
-                if (stock > 0) { box.checked = true; found++; } else { box.checked = false; }
-            });
-            updateBulkCount();
-            if(found > 0) showToast(`${found} Products with Branch Data Selected`); else showToast("No Products with Branch Data Found");
-        }
-
-        function executeClearBranches() {
-            const checkboxes = document.querySelectorAll('.bulk-check:checked');
-            if (checkboxes.length === 0) return;
-            const msg = `You are about to clear branch stock (Uttara, Dhanmondi, Banani) for <b>${checkboxes.length} products</b>.<br>This will set their branch metafield quantities to 0.`;
-            document.getElementById('confirmMsg').innerHTML = msg;
-            const confirmBtn = document.getElementById('confirmActionBtn');
-            confirmBtn.setAttribute('onclick', 'finalizeClearBranches()');
-            document.getElementById('confirmationModal').classList.remove('hidden');
-        }
-
-        async function finalizeClearBranches() {
-            closeConfirmModal();
-            const checkboxes = document.querySelectorAll('.bulk-check:checked');
-            if (checkboxes.length === 0) return;
-            const btn = document.getElementById('clearBranchesBtn');
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-
-            let selectedProducts = [];
-            for (const box of checkboxes) {
-                const productId = box.getAttribute('data-id');
-                const product = products.find(p => p.id == productId);
-                if (product) selectedProducts.push(product);
             }
 
-            if (selectedProducts.length > 0) {
-                const chunkSize = 10; const chunks = [];
-                for (let i = 0; i < selectedProducts.length; i += chunkSize) chunks.push(selectedProducts.slice(i, i + chunkSize));
-                let hasError = false;
+            if (allUpdates.length > 0) {
+                try {
+                    const requests = allUpdates.map(updateData => {
+                        return fetch(WEB_APP_URL, {
+                            method: 'POST',
+                            body: JSON.stringify(updateData)
+                        }).then(res => res.json());
+                    });
 
-                for (let i = 0; i < chunks.length; i++) {
-                    const processedProducts = Math.min(((i + 1) * chunkSize), checkboxes.length);
-                    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Clearing ${processedProducts} / ${checkboxes.length}...`;
-                    try {
-                        const payload = { action: 'bulkClearBranch', products: chunks[i] };
-                        const response = await fetch(WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                        const result = await response.json();
-                        if (result.status !== 'success') { hasError = true; break; }
-                    } catch (e) { hasError = true; break; }
+                    const results = await Promise.all(requests);
+                    const hasError = results.some(res => res.status === 'error');
+
+                    if (!hasError) {
+                        showToast(`Success! ${checkboxes.length} products updated.`);
+                        products = []; 
+                        document.getElementById('productGrid').innerHTML = '';
+                        performSearch(document.getElementById('searchInput').value, selectedCollectionId);
+                    } else {
+                        const errorMsg = results.find(res => res.status === 'error')?.message || 'Bulk update failed';
+                        throw new Error(errorMsg);
+                    }
+                } catch (e) { 
+                    console.error(e); 
+                    showToast("Error updating items! " + e.message);
                 }
-                if (!hasError) {
-                    showToast(`Success! Branch data cleared.`);
-                    products = []; document.getElementById('productGrid').innerHTML = '';
-                    performSearch(document.getElementById('searchInput').value, selectedCollectionId);
-                } else { showToast("Error occurred during bulk clear!"); }
-            } else { showToast("No branch data needed clearing."); }
-            btn.innerHTML = originalText; btn.disabled = false;
+            }
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
         }
     </script>
 </body>
