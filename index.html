@@ -199,12 +199,15 @@
         <div id="adminBulkBar" class="hidden mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex justify-between items-center max-w-7xl mx-auto">
             <div class="flex items-center gap-3">
                 <p class="text-xs font-bold text-red-600 uppercase"><i class="fa-solid fa-screwdriver-wrench mr-1"></i> Admin Tools</p>
-                <button onclick="autoSelectZeroStock()" class="text-[10px] bg-white border border-red-200 text-gray-700 px-3 py-1.5 rounded hover:bg-red-100 transition-colors font-semibold">
-                    1. Select Empty Active
+                <button onclick="selectAllActive()" class="text-[10px] bg-white border border-red-200 text-gray-700 px-3 py-1.5 rounded hover:bg-red-100 transition-colors font-semibold">
+                    1. Select Active
+                </button>
+                <button onclick="clearSelection()" class="text-[10px] bg-white border border-red-200 text-gray-700 px-3 py-1.5 rounded hover:bg-red-100 transition-colors font-semibold">
+                    Clear Selection
                 </button>
             </div>
             <button id="zeroDraftBtn" onclick="executeZeroDraft()" class="bg-red-600 text-white text-[10px] font-bold px-4 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
-                2. Zero Draft (<span id="selectedCount">0</span>)
+                2. Zero Inventory (<span id="selectedCount">0</span>)
             </button>
         </div>
 
@@ -863,24 +866,26 @@
             document.getElementById('zeroDraftBtn').disabled = count === 0;
         }
 
-        function autoSelectZeroStock() {
+        function selectAllActive() {
             const checkboxes = document.querySelectorAll('.bulk-check');
             let found = 0;
             checkboxes.forEach(box => {
                 const status = box.getAttribute('data-status');
-                const stock = parseInt(box.getAttribute('data-stock'));
-                
-                // Active & No Branch Stock (Stock <= 0)
-                if (status === 'ACTIVE' && stock <= 0) {
+                if (status === 'ACTIVE') {
                     box.checked = true;
                     found++;
-                } else {
-                    box.checked = false;
                 }
             });
             updateBulkCount();
-            if(found > 0) showToast(`${found} Empty Active Products Selected`);
-            else showToast("No Empty Active Products Found");
+            if(found > 0) showToast(`${found} Active Products Selected`);
+            else showToast("No Active Products Found");
+        }
+
+        function clearSelection() {
+            const checkboxes = document.querySelectorAll('.bulk-check');
+            checkboxes.forEach(box => box.checked = false);
+            updateBulkCount();
+            showToast("Selection Cleared");
         }
 
         // --- UPDATED POPUP LOGIC (BATCHED) ---
@@ -908,49 +913,40 @@
             btn.disabled = true;
             btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
 
-            let allUpdates = [];
+            let itemsToZero = [];
 
             for (const box of checkboxes) {
                 const productId = box.getAttribute('data-id');
                 const product = products.find(p => p.id == productId);
                 
                 if (product) {
-                    // Collect updates for batch processing
                     product.variants.forEach(v => {
-                        allUpdates.push({
+                        itemsToZero.push({
                             productId: product.id,
-                            variantId: v.id,
-                            inventoryItemId: v.inventoryItemId,
-                            store: 'admin', 
-                            quantity: 0,
-                            action: 'updateInventory',
-                            collectionName: 'Bulk-Action',
-                            sku: 'Bulk Zero & Draft'
+                            inventoryItemId: v.inventoryItemId
                         });
                     });
                 }
             }
 
-            if (allUpdates.length > 0) {
+            if (itemsToZero.length > 0) {
                 try {
-                    const requests = allUpdates.map(updateData => {
-                        return fetch(WEB_APP_URL, {
-                            method: 'POST',
-                            body: JSON.stringify(updateData)
-                        }).then(res => res.json());
+                    const response = await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'bulkZeroInventory',
+                            items: itemsToZero
+                        })
                     });
+                    const result = await response.json();
 
-                    const results = await Promise.all(requests);
-                    const hasError = results.some(res => res.status === 'error');
-
-                    if (!hasError) {
-                        showToast(`Success! ${checkboxes.length} products updated.`);
+                    if (result.status === 'success') {
+                        showToast(`Success! ${checkboxes.length} products zeroed out.`);
                         products = []; 
                         document.getElementById('productGrid').innerHTML = '';
                         performSearch(document.getElementById('searchInput').value, selectedCollectionId);
                     } else {
-                        const errorMsg = results.find(res => res.status === 'error')?.message || 'Bulk update failed';
-                        throw new Error(errorMsg);
+                        throw new Error(result.message || 'Bulk update failed');
                     }
                 } catch (e) { 
                     console.error(e); 
