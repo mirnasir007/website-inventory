@@ -53,7 +53,7 @@
 
     <script>
         // *** REPLACE THIS URL WITH YOUR DEPLOYMENT URL ***
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzZLIADFPhsYJW8wABKi3CGBvoRklmMAD5QMZJVntCoJBeJVT7JCKQrZbJ7vehVZII/exec";
+        const WEB_APP_URL = "https://inventory-backend-rwfi.onrender.com/api";
         
         window.addEventListener('DOMContentLoaded', () => {
             const manifest = {
@@ -276,7 +276,7 @@
                     <button onclick="closeConfirmModal()" class="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
                         Cancel
                     </button>
-                    <button onclick="finalizeBulkZero()" class="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 shadow-md transition-transform active:scale-95">
+                    <button id="confirmYesBtn" onclick="finalizeBulkZero()" class="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 shadow-md transition-transform active:scale-95">
                         Yes, Confirm
                     </button>
                 </div>
@@ -357,6 +357,9 @@
             try {
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify({ action: 'login', store: selectedStore, password: password })
                 });
                 const data = await response.json();
@@ -470,6 +473,9 @@
 
                         return fetch(WEB_APP_URL, {
                             method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
                             body: JSON.stringify(payload)
                         }).then(res => res.json());
                     });
@@ -537,27 +543,74 @@
         }
 
         function handleNotifications(notifications) {
-            const bellContainer = document.getElementById('adminBellContainer');
-            const list = document.getElementById('adminNotificationList');
-            const dot = document.getElementById('adminBellDot');
-            bellContainer.classList.remove('hidden');
-            if (notifications.length > 0) {
-                dot.style.display = 'block';
-                list.innerHTML = '';
-                notifications.forEach(notif => {
-                    const div = document.createElement('div');
-                    div.className = 'p-3 hover:bg-gray-50 cursor-pointer flex items-start gap-2 border-b border-gray-50';
-                    div.innerHTML = `
-                        <div class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] mt-0.5"><i class="fa-solid fa-clipboard-check"></i></div>
-                        <div><p class="text-xs text-gray-800 leading-snug">${notif.msg.replace('updated', 'updated SKU:')}</p><p class="text-[10px] text-gray-400 mt-1 font-mono">${new Date(notif.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p></div>`;
-                    div.onclick = () => { searchProductById(notif.collection); document.getElementById('adminNotificationPopup').classList.remove('open'); };
-                    list.appendChild(div);
-                });
+    const bellContainer = document.getElementById('adminBellContainer');
+    const list = document.getElementById('adminNotificationList');
+    const dot = document.getElementById('adminBellDot');
+    
+    // Get Read notifications from Local Storage
+    let readNotifs = JSON.parse(localStorage.getItem('readNotifs_' + currentStore)) || [];
+    
+    // Filter only Unread notifications
+    let unreadNotifications = notifications.filter(notif => !readNotifs.includes(new Date(notif.time).getTime().toString()));
+
+    bellContainer.classList.remove('hidden');
+    if (unreadNotifications.length > 0) {
+        dot.style.display = 'block';
+        list.innerHTML = '';
+        unreadNotifications.forEach(notif => {
+            const isSoldOut = notif.msg.includes('Sold Out');
+            const iconBg = isSoldOut ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600';
+            const iconClass = isSoldOut ? 'fa-bolt' : 'fa-clipboard-check';
+            // Make text darker and bold to indicate Unread
+            const textClass = isSoldOut ? 'text-red-600 font-bold' : 'text-gray-900 font-bold';
+            let displayMsg = notif.msg;
+            
+            displayMsg = displayMsg.charAt(0).toUpperCase() + displayMsg.slice(1);
+            
+            if (isSoldOut) {
+                displayMsg = displayMsg.replace('updated Sold Out', 'updated Sold Out SKU:');
             } else {
-                dot.style.display = 'none';
-                list.innerHTML = '<div class="p-4 text-center text-xs text-gray-400">No recent updates</div>';
+                displayMsg = displayMsg.replace('updated', 'updated SKU:');
             }
-        }
+
+            const notifId = new Date(notif.time).getTime().toString();
+            // Unread pulsing dot
+            const unreadDot = `<span class="w-2 h-2 rounded-full bg-blue-500 absolute top-3 right-3 shadow-sm animate-pulse"></span>`;
+
+            const div = document.createElement('div');
+            // Updated design: white background and relative positioning
+            div.className = 'p-3 hover:bg-blue-50 cursor-pointer flex items-start gap-2 border-b border-gray-50 relative bg-white transition-all duration-300';
+            div.innerHTML = `
+                ${unreadDot}
+                <div class="${iconBg} w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] mt-0.5"><i class="fa-solid ${iconClass}"></i></div>
+                <div class="pr-3"><p class="text-xs ${textClass} leading-snug">${displayMsg}</p><p class="text-[10px] text-blue-600 mt-1 font-mono font-semibold">New • ${new Date(notif.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p></div>`;
+            
+            div.onclick = () => { 
+                // Save as Read in Local Storage on click
+                readNotifs.push(notifId);
+                if(readNotifs.length > 100) readNotifs.shift(); // Limit size
+                localStorage.setItem('readNotifs_' + currentStore, JSON.stringify(readNotifs));
+                
+                // Hide/remove from list after click
+                div.style.opacity = '0';
+                setTimeout(() => {
+                    div.remove();
+                    if(list.children.length === 0) {
+                        dot.style.display = 'none';
+                        list.innerHTML = '<div class="p-4 text-center text-xs text-gray-400">No recent updates</div>';
+                    }
+                }, 200);
+
+                searchProductById(notif.collection.replace('Sold Out ', '')); 
+                document.getElementById('adminNotificationPopup').classList.remove('open'); 
+            };
+            list.appendChild(div);
+        });
+    } else {
+        dot.style.display = 'none';
+        list.innerHTML = '<div class="p-4 text-center text-xs text-gray-400">No recent updates</div>';
+    }
+}
 
         function toggleAdminNotifications() { document.getElementById('adminNotificationPopup').classList.toggle('open'); }
         document.addEventListener('click', function(e) {
@@ -717,7 +770,11 @@
 
                 const card = document.createElement('div');
                 card.className = 'product-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group flex flex-col h-full relative';
-                card.innerHTML = `${checkboxHtml}<div class="retro-img-container relative" onclick="openImagePreview('${product.image}', '${product.title.replace(/'/g, "\\'")}')"><img src="${product.image}" class="retro-img" onerror="this.src='https://via.placeholder.com/300?text=No+Image'"><div class="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${info.colorClass}">${info.status}</div></div><div class="p-3 flex flex-col flex-grow"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">${product.type || 'Product'}</span><span class="text-[10px] text-gray-400 font-mono">SKU: ${mainSku}</span></div><h3 class="font-bold text-gray-800 text-sm leading-tight mb-2 line-clamp-2">${product.title}</h3><div class="mt-auto"><p class="text-xs text-gray-500 font-semibold">Total: ${info.totalStock}</p>${variantBreakdownHtml}<div class="flex gap-2 mt-3 pt-3 border-t border-gray-100"><button onclick="openModal('${product.id}')" class="flex-1 bg-gray-900 text-white text-xs font-bold uppercase tracking-wide py-2 rounded hover:bg-gray-700 transition-colors">Manage</button></div></div></div>`;
+                
+                const isDraft = info.status === 'DRAFT';
+                const soldBtnDisabled = isDraft ? 'disabled' : '';
+
+                card.innerHTML = `${checkboxHtml}<div class="retro-img-container relative" onclick="openImagePreview('${product.image}', '${product.title.replace(/'/g, "\\'")}')"><img src="${product.image}" class="retro-img" onerror="this.src='https://via.placeholder.com/300?text=No+Image'"><div class="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${info.colorClass}">${info.status}</div></div><div class="p-3 flex flex-col flex-grow"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">${product.type || 'Product'}</span><span class="text-[10px] text-gray-400 font-mono">SKU: ${mainSku}</span></div><h3 class="font-bold text-gray-800 text-sm leading-tight mb-2 line-clamp-2">${product.title}</h3><div class="mt-auto"><p class="text-xs text-gray-500 font-semibold">Total: ${info.totalStock}</p>${variantBreakdownHtml}<div class="flex gap-2 mt-3 pt-3 border-t border-gray-100"><button onclick="openModal('${product.id}')" class="flex-1 bg-gray-900 text-white text-xs font-bold uppercase tracking-wide py-2 rounded hover:bg-gray-700 transition-colors">Manage</button><button onclick="confirmSingleSold('${product.id}')" ${soldBtnDisabled} class="bg-red-600 text-white text-xs font-bold uppercase tracking-wide px-3 py-2 rounded transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"><i class="fa-solid fa-bolt"></i> Sold</button></div></div></div>`;
                 grid.appendChild(card);
             });
             if (hasMoreProducts) { loadMoreBtn.classList.remove('hidden'); } else { loadMoreBtn.classList.add('hidden'); }
@@ -885,37 +942,59 @@
             showToast("Selection Cleared");
         }
 
-        // --- BULK ACTION (SINGLE API CALL) ---
+        // --- BULK ACTION & SINGLE SOLD (SINGLE API CALL) ---
+        let pendingZeroProductId = null;
+
         function closeConfirmModal() {
             document.getElementById('confirmationModal').classList.add('hidden');
+            pendingZeroProductId = null;
         }
 
         function executeBulkZero() {
             const checkboxes = document.querySelectorAll('.bulk-check:checked');
             if (checkboxes.length === 0) return;
 
-            const msg = `You are about to Zero & Draft <b>${checkboxes.length} products</b> across ALL locations.<br>This cannot be undone.`;
+            const msg = `You are about to Zero & Draft <b>${checkboxes.length} products</b> across ALL locations.<br>`;
+            document.getElementById('confirmMsg').innerHTML = msg;
+            document.getElementById('confirmationModal').classList.remove('hidden');
+        }
+
+        function confirmSingleSold(productId) {
+            pendingZeroProductId = productId;
+            let msg = '';
+            
+            if (currentStore === 'admin') {
+                msg = `Are You sure <b>SOLD OUT</b> All Location?<br>`;
+            } else {
+                msg = `Are You Sure <b>SOLD OUT</b> In your Store?<br>`;
+            }
+            
             document.getElementById('confirmMsg').innerHTML = msg;
             document.getElementById('confirmationModal').classList.remove('hidden');
         }
 
         async function finalizeBulkZero() {
-            closeConfirmModal();
+            const isSingleSold = !!pendingZeroProductId;
+            
+            const confirmBtn = document.getElementById('confirmYesBtn');
+            const originalConfirmText = confirmBtn ? confirmBtn.innerHTML : 'Yes, Confirm';
+            if (confirmBtn) {
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
+            }
 
-            const checkboxes = document.querySelectorAll('.bulk-check:checked');
-            if (checkboxes.length === 0) return;
-
-            const btn = document.getElementById('zeroDraftBtn');
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
+            const bulkBtn = document.getElementById('zeroDraftBtn');
+            const originalBulkText = bulkBtn ? bulkBtn.innerHTML : '';
+            if (bulkBtn && !isSingleSold) {
+                bulkBtn.disabled = true;
+                bulkBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
+            }
 
             let itemsToUpdate = [];
 
-            for (const box of checkboxes) {
-                const productId = box.getAttribute('data-id');
-                const product = products.find(p => p.id == productId);
-                
+            if (isSingleSold) {
+                // Handle Single Sold Action
+                const product = products.find(p => p.id == pendingZeroProductId);
                 if (product) {
                     product.variants.forEach(v => {
                         itemsToUpdate.push({
@@ -926,14 +1005,41 @@
                         });
                     });
                 }
+            } else {
+                // Handle Bulk Action
+                const checkboxes = document.querySelectorAll('.bulk-check:checked');
+                if (checkboxes.length === 0) {
+                    closeConfirmModal();
+                    return;
+                }
+
+                for (const box of checkboxes) {
+                    const productId = box.getAttribute('data-id');
+                    const product = products.find(p => p.id == productId);
+                    
+                    if (product) {
+                        product.variants.forEach(v => {
+                            itemsToUpdate.push({
+                                productId: product.id,
+                                variantId: v.id,
+                                inventoryItemId: v.inventoryItemId,
+                                sku: v.sku
+                            });
+                        });
+                    }
+                }
             }
 
             if (itemsToUpdate.length > 0) {
                 try {
                     const response = await fetch(WEB_APP_URL, {
                         method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
                         body: JSON.stringify({
                             action: 'bulkZeroInventory',
+                            store: currentStore,
                             items: itemsToUpdate
                         })
                     });
@@ -941,7 +1047,8 @@
                     const result = await response.json();
 
                     if (result.status === 'success') {
-                        showToast(`Success! Inventory zeroed for selected products.`);
+                        closeConfirmModal();
+                        showToast(`Sold Out Update Successful`);
                         products = []; 
                         document.getElementById('productGrid').innerHTML = '';
                         performSearch(document.getElementById('searchInput').value, selectedCollectionId);
@@ -950,12 +1057,21 @@
                     }
                 } catch (e) { 
                     console.error(e); 
+                    closeConfirmModal();
                     showToast("Error updating items! " + e.message);
                 }
+            } else {
+                closeConfirmModal();
             }
 
-            btn.innerHTML = originalText;
-            btn.disabled = false;
+            if (confirmBtn) {
+                confirmBtn.innerHTML = originalConfirmText;
+                confirmBtn.disabled = false;
+            }
+            if (bulkBtn && !isSingleSold) {
+                bulkBtn.innerHTML = originalBulkText;
+                bulkBtn.disabled = false;
+            }
         }
     </script>
 </body>
