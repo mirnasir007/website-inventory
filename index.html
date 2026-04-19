@@ -411,7 +411,7 @@
                     inputs.forEach(input => {
                         const variantId = input.getAttribute('data-variant-id');
                         const inventoryItemId = input.getAttribute('data-inventory-item-id');
-                        const newQty = parseInt(input.value) || 0;
+                        const newQty = Math.max(0, parseInt(input.value) || 0);
                         const variant = product.variants.find(v => v.id == variantId);
                         variant.inventory[currentStore] = newQty; // Optimistic update (optional)
 
@@ -427,7 +427,7 @@
                     });
                 } else if (type === 'branch') {
                     const input = document.getElementById(`fix-${specificStore}-${specificVariantId}`);
-                    const newQty = parseInt(input.value) || 0;
+                    const newQty = Math.max(0, parseInt(input.value) || 0);
                     const variant = product.variants.find(v => v.id == specificVariantId);
                     variant.inventory[specificStore] = newQty;
 
