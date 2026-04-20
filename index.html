@@ -813,12 +813,29 @@
             
             product.variants.forEach(variant => {
                 const currentStock = variant.inventory[currentStore] || 0;
-                let stockLocation = [];
-                if ((variant.inventory.dhanmondi || 0) > 0) stockLocation.push("Dhanmondi");
-                if ((variant.inventory.banani || 0) > 0) stockLocation.push("Banani");
-                if ((variant.inventory.uttara || 0) > 0) stockLocation.push("Uttara");
-                const stockDisplayHtml = stockLocation.length > 0 ? `<p class="text-[9px] text-green-600 font-bold mt-0.5 uppercase tracking-tight"><i class="fa-solid fa-location-dot mr-1"></i>${stockLocation.join(', ')}</p>` : `<p class="text-[9px] text-gray-400 mt-0.5">No stock in branches</p>`;
-                const stockLabel = currentStore === 'admin' ? 'Global Qty' : 'My Store Qty';
+                let stockDisplayHtml = '';
+                let stockLabelHtml = '';
+
+                if (currentStore === 'admin') {
+                    // Admin er jonno baam pash faka thakbe, daan pashe dynamic label dekhabe
+                    stockDisplayHtml = ''; 
+                    
+                    const mainStock = variant.actualShopifyStock || 0;
+                    if (mainStock > 0) {
+                        stockLabelHtml = `<span class="text-[9px] text-green-600 font-bold uppercase tracking-wider"><i class="fa-solid fa-box mr-1"></i>Main Stock</span>`;
+                    } else {
+                        stockLabelHtml = `<span class="text-[9px] text-red-500 font-bold uppercase tracking-wider"><i class="fa-solid fa-box-open mr-1"></i>Main Stock</span>`;
+                    }
+                } else {
+                    // Store user er jonno baam pashe location ebong daan pashe static label thakbe
+                    let stockLocation = [];
+                    if ((variant.inventory.dhanmondi || 0) > 0) stockLocation.push("Dhanmondi");
+                    if ((variant.inventory.banani || 0) > 0) stockLocation.push("Banani");
+                    if ((variant.inventory.uttara || 0) > 0) stockLocation.push("Uttara");
+                    stockDisplayHtml = stockLocation.length > 0 ? `<p class="text-[9px] text-green-600 font-bold mt-0.5 uppercase tracking-tight"><i class="fa-solid fa-location-dot mr-1"></i>${stockLocation.join(', ')}</p>` : `<p class="text-[9px] text-gray-400 mt-0.5">No stock in branches</p>`;
+                    
+                    stockLabelHtml = `<span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">My Store Qty</span>`;
+                }
 
                 let adminFixHtml = '';
                 if (currentStore === 'admin') {
@@ -831,15 +848,21 @@
                             </button>
                         </div>
                         <div class="grid grid-cols-3 gap-2">
-                            ${['dhanmondi', 'banani', 'uttara'].map(store => `
+                            ${['dhanmondi', 'banani', 'uttara'].map(store => {
+                                const fullStoreName = store.charAt(0).toUpperCase() + store.slice(1);
+                                const storeQty = variant.inventory[store] || 0;
+                                const labelClass = storeQty > 0 ? 'text-[9px] text-green-600 font-bold tracking-tight' : 'text-[8px] text-gray-500';
+                                const iconHtml = storeQty > 0 ? '<i class="fa-solid fa-location-dot mr-1"></i>' : '';
+                                return `
                                 <div class="flex flex-col">
-                                    <label class="text-[8px] uppercase text-gray-500 mb-0.5">${store.substr(0,3)}</label>
+                                    <label class="uppercase mb-0.5 ${labelClass}">${iconHtml}${fullStoreName}</label>
                                     <div class="flex items-center gap-1">
-                                        <input type="number" id="fix-${store}-${variant.id}" value="${variant.inventory[store] || 0}" class="w-full text-xs border border-gray-200 rounded p-1 text-center bg-gray-50 focus:bg-white">
+                                        <input type="number" id="fix-${store}-${variant.id}" value="${storeQty}" class="w-full text-xs border border-gray-200 rounded p-1 text-center bg-gray-50 focus:bg-white">
                                         <button onclick="saveInventoryChanges('branch', '${variant.id}', '${store}')" class="text-[10px] bg-gray-200 hover:bg-black hover:text-white rounded px-1.5 py-1 transition-colors"><i class="fa-solid fa-check"></i></button>
                                     </div>
                                 </div>
-                            `).join('')}
+                                `;
+                            }).join('')}
                         </div>
                     </div>`;
                 }
@@ -854,7 +877,7 @@
                             ${stockDisplayHtml}
                         </div>
                         <div class="flex flex-col items-end gap-1">
-                            <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">${stockLabel}</span>
+                            ${stockLabelHtml}
                             <div class="flex items-center gap-2">
                                 <button onclick="adjustInput('input-${variant.id}', -1)" class="w-7 h-7 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 text-gray-600"><i class="fa-solid fa-minus text-[10px]"></i></button>
                                 <input type="number" id="input-${variant.id}" value="${currentStock}" min="0" class="main-input w-12 text-center font-bold text-gray-800 bg-white border border-gray-300 rounded py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none" data-variant-id="${variant.id}" data-inventory-item-id="${variant.inventoryItemId}">
