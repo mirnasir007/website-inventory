@@ -765,9 +765,19 @@
                 });
 
                 let totalBranchStock = 0;
+                let activeBranches = new Set();
+                
                 product.variants.forEach(v => {
                     totalBranchStock += (v.inventory.dhanmondi || 0) + (v.inventory.banani || 0) + (v.inventory.uttara || 0);
+                    if ((v.inventory.dhanmondi || 0) > 0) activeBranches.add("Dhanmondi");
+                    if ((v.inventory.banani || 0) > 0) activeBranches.add("Banani");
+                    if ((v.inventory.uttara || 0) > 0) activeBranches.add("Uttara");
                 });
+
+                let adminBranchStockHtml = '';
+                if (currentStore === 'admin' && activeBranches.size > 0) {
+                    adminBranchStockHtml = `<div class="text-[10px] text-green-600 font-bold mb-1 truncate"><i class="fa-solid fa-location-dot mr-1"></i>${Array.from(activeBranches).join(', ')}</div>`;
+                }
 
                 let variantBreakdownHtml = '';
                 if(product.variants.length > 0) {
@@ -802,9 +812,10 @@
 
                 card.innerHTML = `${checkboxHtml}<div class="retro-img-container relative" onclick="openImagePreview('${product.image}', '${product.title.replace(/'/g, "\\'")}')"><img src="${product.image}" class="retro-img" onerror="this.src='https://via.placeholder.com/300?text=No+Image'"><div class="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${info.colorClass}">${info.status}</div></div><div class="p-3 flex flex-col flex-grow"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">${product.type || 'Product'}</span><span class="text-[10px] text-gray-400 font-mono">SKU: ${mainSku}</span></div><h3 class="font-bold text-gray-800 text-sm leading-tight mb-2 line-clamp-2">${product.title}</h3>
 <div class="mt-auto">
-    <div class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 mb-2">
+    <div class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 mb-1">
         <i class="fas fa-warehouse mr-1"></i> All Location Stock: ${totalAllLocationsStock}
     </div>
+    ${adminBranchStockHtml}
     ${variantBreakdownHtml}<div class="flex gap-2 mt-3 pt-3 border-t border-gray-100"><button onclick="openModal('${product.id}')" class="flex-1 bg-gray-900 text-white text-xs font-bold uppercase tracking-wide py-2 rounded hover:bg-gray-700 transition-colors">Manage</button><button onclick="confirmSingleSold('${product.id}')" ${soldBtnDisabled} class="bg-red-600 text-white text-xs font-bold uppercase tracking-wide px-3 py-2 rounded transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"><i class="fa-solid fa-bolt"></i> Sold</button></div></div></div>`;
                 grid.appendChild(card);
             });
