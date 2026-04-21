@@ -276,13 +276,6 @@
                             </button>
                             <h2 class="text-xl font-bold text-gray-800"><i class="fa-solid fa-rotate mr-2 text-blue-500"></i> POS to Web Sync</h2>
                         </div>
-                        
-                        <select id="mockLoginUser" onchange="simulateLogin()" class="border border-blue-300 rounded p-2 text-sm font-bold bg-white outline-none focus:ring-2 focus:ring-blue-400">
-                            <option value="admin">Login as: Admin</option>
-                            <option value="dhanmondi">Login as: Dhanmondi User</option>
-                            <option value="banani">Login as: Banani User</option>
-                            <option value="uttara">Login as: Uttara User</option>
-                        </select>
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -506,8 +499,12 @@
 
         function syncPosUser() {
             if(currentStore) {
-                document.getElementById('mockLoginUser').value = currentStore;
-                simulateLogin();
+                currentUser = currentStore;
+                const mappedStore = POS_STORE_MAP[currentUser];
+                const storeSelect = document.getElementById('posStoreCode');
+                
+                storeSelect.value = mappedStore;
+                storeSelect.disabled = (currentUser !== 'admin'); 
             }
         }
 
@@ -1260,15 +1257,6 @@
         // ==========================================
         // POS SYNC FUNCTIONS
         // ==========================================
-        function simulateLogin() {
-            currentUser = document.getElementById('mockLoginUser').value;
-            const mappedStore = POS_STORE_MAP[currentUser];
-            const storeSelect = document.getElementById('posStoreCode');
-            
-            storeSelect.value = mappedStore;
-            storeSelect.disabled = (currentUser !== 'admin'); 
-        }
-
         function getOperatingStore() {
             const selectedCode = document.getElementById('posStoreCode').value;
             return currentUser === 'admin' ? REVERSE_STORE_MAP[selectedCode] : currentUser;
