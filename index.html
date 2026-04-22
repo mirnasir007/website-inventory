@@ -1248,6 +1248,9 @@
                         itemsToUpdate.forEach(item => {
                             const product = products.find(p => p.id == item.productId);
                             if (product) {
+                                // Update product status to DRAFT so it reflects in real-time UI
+                                product.status = 'DRAFT'; 
+                                
                                 const variant = product.variants.find(v => v.id == item.variantId);
                                 if (variant) {
                                     if (currentStore === 'admin') {
