@@ -115,7 +115,7 @@
         <button onclick="closeImagePreview(null, true)" class="absolute top-5 right-5 z-[160] text-white/80 hover:text-white bg-gray-800/50 hover:bg-gray-700/80 rounded-full w-10 h-10 flex items-center justify-center transition-all backdrop-blur-md border border-white/10 shadow-lg">
             <i class="fa-solid fa-times text-xl"></i>
         </button>
-        <div class="relative max-w-5xl w-full max-h-screen flex flex-col items-center justify-center" onclick="event.stopPropagation()">
+        <div class="relative max-w-5xl w-full max-h-screen flex flex-col items-center justify-center">
             <img id="previewImage" src="" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-gray-800">
             <h3 id="previewTitle" class="text-white/90 mt-4 text-lg font-medium text-center tracking-wide px-4"></h3>
         </div>
@@ -297,7 +297,7 @@
                             <input type="date" id="posEndDate" class="w-full border border-gray-200 rounded-md p-2 text-sm bg-gray-50 outline-none">
                         </div>
                         <div>
-                            <button onclick="fetchPosSalesData()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-md transition shadow-md text-sm">
+                            <button id="getReportBtn" onclick="fetchPosSalesData()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-md transition shadow-md text-sm">
                                 <i class="fa-solid fa-cloud-arrow-down mr-1"></i> Get Report
                             </button>
                         </div>
@@ -351,7 +351,7 @@
         </div>
     </div>
 
-    <div id="confirmationModal" class="fixed inset-0 z-[210] bg-black/90 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
+    <div id="confirmationModal" class="fixed inset-0 z-[210] bg-transparent hidden flex items-center justify-center p-4 backdrop-blur-md transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-100 animate-slide-down">
             <div class="p-6 text-center">
                 <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
@@ -495,6 +495,17 @@
         function closePosSyncView() {
             document.getElementById('posSyncView').classList.add('hidden');
             document.getElementById('mainAppView').classList.remove('hidden');
+            
+            // Reset POS Sync states
+            document.getElementById('posInvoiceContainer').innerHTML = '';
+            let today = new Date().toISOString().split('T')[0];
+            document.getElementById('posFromDate').value = today;
+            document.getElementById('posEndDate').value = today;
+            
+            const getReportBtn = document.getElementById('getReportBtn');
+            if (getReportBtn) {
+                getReportBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-down mr-1"></i> Get Report`;
+            }
         }
 
         function syncPosUser() {
@@ -1040,7 +1051,7 @@
         function adjustInput(inputId, amount) { const input = document.getElementById(inputId); let val = parseInt(input.value) || 0; val += amount; if (val < 0) val = 0; input.value = val; }
         function closeModal() { document.getElementById('variantModal').classList.add('hidden'); currentEditingProductId = null; }
         function openImagePreview(src, title) { const m = document.getElementById('imagePreviewModal'); document.getElementById('previewImage').src = src; document.getElementById('previewTitle').innerText = title; m.classList.remove('hidden'); setTimeout(() => m.classList.remove('opacity-0'), 10); }
-        function closeImagePreview(e, force) { if (force || e.target?.id === 'imagePreviewModal') { const m = document.getElementById('imagePreviewModal'); m.classList.add('opacity-0'); setTimeout(() => m.classList.add('hidden'), 300); } }
+        function closeImagePreview(e, force) { if (force || !e || e.target?.id === 'imagePreviewModal' || e.target?.tagName !== 'IMG') { const m = document.getElementById('imagePreviewModal'); m.classList.add('opacity-0'); setTimeout(() => m.classList.add('hidden'), 300); } }
         function showToast(msg) { const t = document.getElementById('toast'); document.getElementById('toastMsg').innerText = msg; t.classList.remove('translate-y-20', 'opacity-0'); setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000); }
         
         function searchProductById(productId) {
@@ -1232,9 +1243,28 @@
                     if (result.status === 'success') {
                         closeConfirmModal();
                         showToast(`Sold Out Update Successful`);
-                        products = []; 
-                        document.getElementById('productGrid').innerHTML = '';
-                        performSearch(document.getElementById('searchInput').value, selectedCollectionId);
+                        
+                        // Locally update the inventory to 0 to avoid reload/jumping
+                        itemsToUpdate.forEach(item => {
+                            const product = products.find(p => p.id == item.productId);
+                            if (product) {
+                                const variant = product.variants.find(v => v.id == item.variantId);
+                                if (variant) {
+                                    if (currentStore === 'admin') {
+                                        variant.actualShopifyStock = 0;
+                                        variant.inventory.admin = 0;
+                                        variant.inventory.dhanmondi = 0;
+                                        variant.inventory.banani = 0;
+                                        variant.inventory.uttara = 0;
+                                    } else {
+                                        variant.inventory[currentStore] = 0;
+                                    }
+                                }
+                            }
+                        });
+                        
+                        // Re-render the grid without losing scroll position
+                        renderProducts();
                     } else {
                         throw new Error(result.message || 'Bulk update failed');
                     }
@@ -1311,6 +1341,11 @@
                 const resData = await response.json();
                 
                 document.getElementById('posLoadingMsg').classList.add('hidden');
+                
+                const getReportBtn = document.getElementById('getReportBtn');
+                if (getReportBtn) {
+                    getReportBtn.innerHTML = `<i class="fa-solid fa-rotate mr-1"></i> Reload Report`;
+                }
 
                 if (resData.status === 'success' && resData.data.length > 0) {
                     let html = "";
