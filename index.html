@@ -647,7 +647,7 @@
             if(data.status === 'success') {
                 collectionsList = data.collections.sort((a, b) => a.title.localeCompare(b.title));
                 populateCustomDropdown(collectionsList);
-                handleNotifications(data.notifications);
+                handleNotifications(data.notifications, data.readData);
                 document.getElementById('initialState').classList.remove('hidden');
                 document.getElementById('loadingState').classList.add('hidden');
             }
@@ -658,21 +658,21 @@
                 const response = await fetch(`${WEB_APP_URL}?action=getInitialData&store=${currentStore}`);
                 const data = await response.json();
                 if(data.status === 'success' && data.notifications) {
-                    handleNotifications(data.notifications);
+                    handleNotifications(data.notifications, data.readData);
                 }
             } catch(e) {}
         }
 
-        function handleNotifications(notifications) {
+        function handleNotifications(notifications, readData = { lastRead: 0, reads: [] }) {
             const bellContainer = document.getElementById('adminBellContainer');
             const list = document.getElementById('adminNotificationList');
             const dot = document.getElementById('adminBellDot');
             
-            // Get Read notifications from Local Storage
-            let readNotifs = JSON.parse(localStorage.getItem('readNotifs_' + currentStore)) || [];
-            
-            // Filter only Unread notifications
-            let unreadNotifications = notifications.filter(notif => !readNotifs.includes(new Date(notif.time).getTime().toString()));
+            // Filter Unread notifications: Must be newer than Backend Time AND not in single reads array
+            let unreadNotifications = notifications.filter(notif => {
+                const notifTime = new Date(notif.time).getTime();
+                return notifTime > readData.lastRead && !readData.reads.includes(notifTime.toString());
+            });
 
             // Show Read All button for Admin
             const markAllBtn = document.getElementById('markAllReadBtn');
@@ -717,10 +717,12 @@
                         <div class="pr-3"><p class="text-xs ${textClass} leading-snug">${displayMsg}</p><p class="text-[10px] text-blue-600 mt-1 font-mono font-semibold">New • ${new Date(notif.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p></div>`;
                     
                     div.onclick = () => { 
-                        // Save as Read in Local Storage on click
-                        readNotifs.push(notifId);
-                        if(readNotifs.length > 100) readNotifs.shift(); 
-                        localStorage.setItem('readNotifs_' + currentStore, JSON.stringify(readNotifs));
+                        // Send single read to backend
+                        fetch(WEB_APP_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'markSingleRead', store: currentStore, notifId: notifId })
+                        });
                         
                         // Hide/remove from list after click
                         div.style.opacity = '0';
@@ -729,6 +731,8 @@
                             if(list.children.length === 0) {
                                 dot.style.display = 'none';
                                 list.innerHTML = '<div class="p-4 text-center text-xs text-gray-400">No recent updates</div>';
+                                const markAllBtn = document.getElementById('markAllReadBtn');
+                                if (markAllBtn) markAllBtn.classList.add('hidden');
                             }
                         }, 200);
 
@@ -1120,24 +1124,23 @@
         }
 
         function markAllNotificationsRead() {
-            if (currentStore !== 'admin') return; // Will work for admin only
+            if (currentStore !== 'admin') return; // Shudhu admin er jonno kaj korbe
             
             const list = document.getElementById('adminNotificationList');
             const unreadElements = list.querySelectorAll('.notif-item');
             if (unreadElements.length === 0) return;
             
-            let readNotifs = JSON.parse(localStorage.getItem('readNotifs_' + currentStore)) || [];
-            
-            unreadElements.forEach(el => {
-                const notifId = el.getAttribute('data-notif-id');
-                if (notifId && !readNotifs.includes(notifId)) {
-                    readNotifs.push(notifId);
-                }
+            // Update Backend
+            fetch(WEB_APP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'markRead', store: currentStore, timestamp: Date.now() })
             });
             
-            if (readNotifs.length > 100) readNotifs = readNotifs.slice(-100);
-            localStorage.setItem('readNotifs_' + currentStore, JSON.stringify(readNotifs));
+            // Backend clear hoye gele local storage er memory delete kore deya holo
+            localStorage.removeItem('readNotifs_' + currentStore);
             
+            // Clear UI
             list.innerHTML = '<div class="p-4 text-center text-xs text-gray-400">No recent updates</div>';
             document.getElementById('adminBellDot').style.display = 'none';
             document.getElementById('markAllReadBtn').classList.add('hidden');
