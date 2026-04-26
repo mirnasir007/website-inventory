@@ -286,6 +286,7 @@
                                 <option value="100010003">BANANI STORE</option>
                                 <option value="100010002">DHANMONDI STORE</option>
                                 <option value="100010006">UTTARA STORE</option>
+                                <option value="100010004">PREMIUM E-STORE</option>
                             </select>
                         </div>
                         <div>
@@ -405,12 +406,13 @@
         let posSyncedMemory = [];
         let posActiveInvoice = null;
         const POS_STORE_MAP = {
-            'admin': '', 
+            'admin': '100010004', 
             'dhanmondi': '100010002',
             'banani': '100010003',
             'uttara': '100010006'
         };
         const REVERSE_STORE_MAP = {
+            '100010004': 'admin',
             '100010002': 'dhanmondi',
             '100010003': 'banani',
             '100010006': 'uttara'
@@ -559,6 +561,7 @@
                             inventoryItemId: inventoryItemId,
                             store: currentStore,
                             quantity: newQty,
+                            oldQuantity: variant.inventory[currentStore] || 0,
                             collectionName: currentCollectionName,
                             sku: variant.sku
                         });
@@ -575,6 +578,7 @@
                         inventoryItemId: variant.inventoryItemId,
                         store: specificStore,
                         quantity: newQty,
+                        oldQuantity: variant.inventory[specificStore] || 0,
                         collectionName: currentCollectionName,
                         sku: variant.sku
                     });
@@ -1162,7 +1166,17 @@
             let msg = '';
             
             if (currentStore === 'admin') {
-                msg = `Are You sure <b>SOLD OUT</b> All Location?<br>`;
+                msg = `
+                <div class="text-left mb-4">
+                    <label class="flex items-center gap-2 mb-2 cursor-pointer">
+                        <input type="radio" name="soldOutOption" value="main" checked class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
+                        <span class="text-sm font-bold text-gray-700">Only Your Location</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="soldOutOption" value="all" class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
+                        <span class="text-sm font-bold text-gray-700">Are You sure SOLD OUT All Location?</span>
+                    </label>
+                </div>`;
             } else {
                 msg = `Are You Sure <b>SOLD OUT</b> In your Store?<br>`;
             }
@@ -1227,6 +1241,12 @@
             }
 
             if (itemsToUpdate.length > 0) {
+                let selectedTarget = 'all';
+                if (isSingleSold && currentStore === 'admin') {
+                    const radio = document.querySelector('input[name="soldOutOption"]:checked');
+                    if (radio) selectedTarget = radio.value;
+                }
+
                 try {
                     const response = await fetch(WEB_APP_URL, {
                         method: 'POST',
@@ -1234,6 +1254,7 @@
                         body: JSON.stringify({
                             action: 'bulkZeroInventory',
                             store: currentStore,
+                            targetLocation: selectedTarget,
                             items: itemsToUpdate
                         })
                     });
@@ -1254,11 +1275,17 @@
                                 const variant = product.variants.find(v => v.id == item.variantId);
                                 if (variant) {
                                     if (currentStore === 'admin') {
-                                        variant.actualShopifyStock = 0;
-                                        variant.inventory.admin = 0;
-                                        variant.inventory.dhanmondi = 0;
-                                        variant.inventory.banani = 0;
-                                        variant.inventory.uttara = 0;
+                                        if (selectedTarget === 'main') {
+                                            variant.actualShopifyStock = 0;
+                                            variant.inventory.admin = 0;
+                                            product.status = 'ACTIVE';
+                                        } else {
+                                            variant.actualShopifyStock = 0;
+                                            variant.inventory.admin = 0;
+                                            variant.inventory.dhanmondi = 0;
+                                            variant.inventory.banani = 0;
+                                            variant.inventory.uttara = 0;
+                                        }
                                     } else {
                                         variant.inventory[currentStore] = 0;
                                     }
