@@ -553,6 +553,7 @@
                         const inventoryItemId = input.getAttribute('data-inventory-item-id');
                         const newQty = Math.max(0, parseInt(input.value) || 0);
                         const variant = product.variants.find(v => v.id == variantId);
+                        const oldQty = variant.inventory[currentStore] || 0;
                         variant.inventory[currentStore] = newQty; 
 
                         updates.push({
@@ -561,7 +562,7 @@
                             inventoryItemId: inventoryItemId,
                             store: currentStore,
                             quantity: newQty,
-                            oldQuantity: variant.inventory[currentStore] || 0,
+                            oldQuantity: oldQty,
                             collectionName: currentCollectionName,
                             sku: variant.sku
                         });
@@ -570,15 +571,16 @@
                     const input = document.getElementById(`fix-${specificStore}-${specificVariantId}`);
                     const newQty = Math.max(0, parseInt(input.value) || 0);
                     const variant = product.variants.find(v => v.id == specificVariantId);
+                    const oldQty = variant.inventory[specificStore] || 0;
                     variant.inventory[specificStore] = newQty;
 
                     updates.push({
                         productId: product.id,
                         variantId: specificVariantId,
                         inventoryItemId: variant.inventoryItemId,
-                        store: specificStore,
+                        store: currentStore,
                         quantity: newQty,
-                        oldQuantity: variant.inventory[specificStore] || 0,
+                        oldQuantity: oldQty,
                         collectionName: currentCollectionName,
                         sku: variant.sku
                     });
