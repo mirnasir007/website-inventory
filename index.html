@@ -654,7 +654,8 @@
             try {
                 await fetchData();
                 if (notificationInterval) clearInterval(notificationInterval);
-                notificationInterval = setInterval(fetchNotificationsOnly, 30000); 
+                // Changed from 30s to 3 mins (180000ms) to reduce excessive API requests
+                notificationInterval = setInterval(fetchNotificationsOnly, 180000); 
             } catch (e) { console.error(e); toggleLoading(false); }
         }
 
@@ -1392,15 +1393,10 @@
                             const syncStatus = posSyncedMemory[uniqueKey]; 
                             
                             if (syncStatus) {
-                                // If "(Auto Updated)" is written in the sheet
-                                const isAuto = syncStatus.includes('Auto Updated');
-                                const statusText = isAuto ? 'Auto Updated' : 'Updated';
-                                const iconType = isAuto ? 'fa-robot' : 'fa-check-circle';
-
                                 return `
                                 <div class="flex justify-between items-center bg-green-50 p-2 rounded border border-green-200 mb-2 sku-row">
                                     <span class="font-mono text-sm font-bold text-green-700 bg-white px-2 py-1 rounded shadow-sm">${sku}</span>
-                                    <span class="text-green-600 text-xs font-bold px-3 py-1.5 uppercase tracking-wide"><i class="fa-solid ${iconType} mr-1"></i> ${statusText}</span>
+                                    <span class="text-green-600 text-xs font-bold px-3 py-1.5 uppercase tracking-wide"><i class="fa-solid fa-check-circle mr-1"></i> Updated</span>
                                 </div>`;
                             }
                             
