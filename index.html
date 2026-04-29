@@ -545,6 +545,10 @@
             try {
                 const product = products.find(p => p.id == currentEditingProductId);
                 let updates = [];
+                
+                const itemsToZero = product.variants
+                    .filter(v => (v.actualShopifyStock || v.inventory.admin) > 0)
+                    .map(v => v.inventoryItemId);
 
                 if (type === 'main') {
                     const inputs = document.querySelectorAll('#modalVariantsContainer input.main-input');
@@ -564,7 +568,8 @@
                             quantity: newQty,
                             oldQuantity: oldQty,
                             collectionName: currentCollectionName,
-                            sku: variant.sku
+                            sku: variant.sku,
+                            itemsToZero: itemsToZero
                         });
                     });
                 } else if (type === 'branch') {
@@ -582,7 +587,8 @@
                         quantity: newQty,
                         oldQuantity: oldQty,
                         collectionName: currentCollectionName,
-                        sku: variant.sku
+                        sku: variant.sku,
+                        itemsToZero: itemsToZero
                     });
                 } else if (type === 'reset_all') {
                     const stores = ['dhanmondi', 'banani', 'uttara'];
@@ -600,7 +606,8 @@
                             store: store,
                             quantity: 0,
                             collectionName: currentCollectionName,
-                            sku: variant.sku
+                            sku: variant.sku,
+                            itemsToZero: itemsToZero
                         });
                     });
                 }
@@ -622,6 +629,14 @@
                     const hasError = results.some(res => res.status === 'error');
                     
                     if (!hasError) {
+                        if (itemsToZero && itemsToZero.length > 0 && (type === 'branch' || currentStore !== 'admin')) {
+                            product.variants.forEach(v => {
+                                v.actualShopifyStock = 0;
+                                v.inventory.admin = 0;
+                            });
+                            renderProducts();
+                        }
+
                         if (type === 'branch') {
                             showToast(`${specificStore} Updated!`);
                         } else if (type === 'reset_all') {
@@ -1171,12 +1186,8 @@
             if (currentStore === 'admin') {
                 msg = `
                 <div class="text-left mb-4">
-                    <label class="flex items-center gap-2 mb-2 cursor-pointer">
-                        <input type="radio" name="soldOutOption" value="main" checked class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
-                        <span class="text-sm font-bold text-gray-700">Only Your Location</span>
-                    </label>
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="soldOutOption" value="all" class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
+                        <input type="radio" name="soldOutOption" value="all" checked class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
                         <span class="text-sm font-bold text-gray-700">Are You sure SOLD OUT All Location?</span>
                     </label>
                 </div>`;
