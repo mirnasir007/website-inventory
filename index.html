@@ -929,6 +929,21 @@
                     adminBranchStockHtml = `<div class="text-[10px] text-green-600 font-bold mb-1 truncate"><i class="fa-solid fa-location-dot mr-1"></i>${Array.from(activeBranches).join(', ')}</div>`;
                 }
 
+                let committedBranches = new Set();
+                product.variants.forEach(v => {
+                    if (v.committed) {
+                        if (v.committed.dhanmondi > 0) committedBranches.add("Dhanmondi");
+                        if (v.committed.banani > 0) committedBranches.add("Banani");
+                        if (v.committed.uttara > 0) committedBranches.add("Uttara");
+                    }
+                });
+
+                let committedHtml = '';
+                if (committedBranches.size > 0) {
+                    let committedText = Array.from(committedBranches).map(b => `Committed ${b}`).join(', ');
+                    committedHtml = `<div class="text-[11px] text-red-600 font-bold mt-2 text-center bg-red-50 py-1 rounded border border-red-100 shadow-sm animate-pulse">${committedText}</div>`;
+                }
+
                 let variantBreakdownHtml = '';
                 if(product.variants.length > 0) {
                     variantBreakdownHtml = '<div class="flex flex-wrap gap-1 mt-1.5">';
@@ -966,7 +981,7 @@
         <i class="fas fa-warehouse mr-1"></i> All Location Stock: ${totalAllLocationsStock}
     </div>
     ${adminBranchStockHtml}
-    ${variantBreakdownHtml}<div class="flex gap-2 mt-3 pt-3 border-t border-gray-100"><button onclick="openModal('${product.id}')" class="flex-1 bg-gray-900 text-white text-xs font-bold uppercase tracking-wide py-2 rounded hover:bg-gray-700 transition-colors">Manage</button><button onclick="confirmSingleSold('${product.id}')" ${soldBtnDisabled} class="bg-red-600 text-white text-xs font-bold uppercase tracking-wide px-3 py-2 rounded transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"><i class="fa-solid fa-bolt"></i> Sold</button></div></div></div>`;
+    ${variantBreakdownHtml}${committedHtml}<div class="flex gap-2 mt-3 pt-3 border-t border-gray-100"><button onclick="openModal('${product.id}')" class="flex-1 bg-gray-900 text-white text-xs font-bold uppercase tracking-wide py-2 rounded hover:bg-gray-700 transition-colors">Manage</button><button onclick="confirmSingleSold('${product.id}')" ${soldBtnDisabled} class="bg-red-600 text-white text-xs font-bold uppercase tracking-wide px-3 py-2 rounded transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"><i class="fa-solid fa-bolt"></i> Sold</button></div></div></div>`;
                 grid.appendChild(card);
             });
             if (hasMoreProducts) { loadMoreBtn.classList.remove('hidden'); } else { loadMoreBtn.classList.add('hidden'); }
