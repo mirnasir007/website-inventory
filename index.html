@@ -221,12 +221,15 @@
                     <button onclick="selectAllActive()" class="text-[10px] bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-100 transition-colors font-semibold shadow-sm">
                         Select All Active
                     </button>
+                    <button onclick="selectAllMainStock()" class="text-[10px] bg-white border border-blue-300 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-50 transition-colors font-semibold shadow-sm">
+                        Select Main Stock
+                    </button>
                     <button onclick="clearSelection()" class="text-[10px] bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-100 transition-colors font-semibold shadow-sm">
                         Clear Selection
                     </button>
                 </div>
                 <button id="zeroDraftBtn" onclick="executeBulkZero()" class="bg-red-600 text-white text-[10px] font-bold px-4 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm" disabled>
-                    Zero All Locations (<span id="selectedCount">0</span>)
+                    Bulk Zero Action (<span id="selectedCount">0</span>)
                 </button>
             </div>
 
@@ -960,11 +963,14 @@
 
                 let checkboxHtml = '';
                 if (currentStore === 'admin') {
+                    let mainTotal = 0;
+                    product.variants.forEach(v => { mainTotal += (v.actualShopifyStock || 0); });
                     checkboxHtml = `<div class="absolute top-2 left-2 z-10" onclick="event.stopPropagation()">
                         <input type="checkbox" class="bulk-check w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer shadow-sm" 
                         data-id="${product.id}" 
                         data-status="${info.status}" 
                         data-stock="${totalBranchStock}"
+                        data-main-stock="${mainTotal}"
                         onchange="updateBulkCount()">
                     </div>`;
                 }
@@ -1149,6 +1155,19 @@
             showToast(`${count} Active Products Selected`);
         }
 
+        function selectAllMainStock() {
+            const checkboxes = document.querySelectorAll('.bulk-check');
+            let count = 0;
+            checkboxes.forEach(box => {
+                if (parseInt(box.getAttribute('data-main-stock')) > 0) {
+                    box.checked = true;
+                    count++;
+                }
+            });
+            updateBulkCount();
+            showToast(`${count} Main Stock Products Selected`);
+        }
+
         function clearSelection() {
             document.querySelectorAll('.bulk-check').forEach(box => box.checked = false);
             updateBulkCount();
@@ -1166,7 +1185,20 @@
             const checkboxes = document.querySelectorAll('.bulk-check:checked');
             if (checkboxes.length === 0) return;
 
-            const msg = `You are about to Zero & Draft <b>${checkboxes.length} products</b> across ALL locations.<br>`;
+            let msg = `You are about to Zero <b>${checkboxes.length} products</b>.<br>`;
+            if (currentStore === 'admin') {
+                msg += `
+                <div class="text-left mb-4 mt-3 border border-gray-200 p-3 rounded bg-gray-50">
+                    <label class="flex items-center gap-2 cursor-pointer mb-2">
+                        <input type="radio" name="soldOutOption" value="all" checked class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
+                        <span class="text-sm font-bold text-gray-700">Zero ALL Locations & Draft</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="soldOutOption" value="main" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="text-sm font-bold text-gray-700">Zero MAIN Location Only</span>
+                    </label>
+                </div>`;
+            }
             document.getElementById('confirmMsg').innerHTML = msg;
             document.getElementById('confirmationModal').classList.remove('hidden');
         }
@@ -1201,9 +1233,13 @@
             if (currentStore === 'admin') {
                 msg = `
                 <div class="text-left mb-4">
-                    <label class="flex items-center gap-2 cursor-pointer">
+                    <label class="flex items-center gap-2 cursor-pointer mb-2">
                         <input type="radio" name="soldOutOption" value="all" checked class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
                         <span class="text-sm font-bold text-gray-700">Are You sure SOLD OUT All Location?</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="soldOutOption" value="main" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="text-sm font-bold text-gray-700">SOLD OUT Main Location Only</span>
                     </label>
                 </div>`;
             } else {
@@ -1271,7 +1307,7 @@
 
             if (itemsToUpdate.length > 0) {
                 let selectedTarget = 'all';
-                if (isSingleSold && currentStore === 'admin') {
+                if (currentStore === 'admin') {
                     const radio = document.querySelector('input[name="soldOutOption"]:checked');
                     if (radio) selectedTarget = radio.value;
                 }
