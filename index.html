@@ -726,18 +726,37 @@
                 list.innerHTML = '';
                 unreadNotifications.forEach(notif => {
                     const isSoldOut = notif.msg.includes('Sold Out');
-                    const iconBg = isSoldOut ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600';
-                    const iconClass = isSoldOut ? 'fa-bolt' : 'fa-clipboard-check';
-                    // Make text darker and bold to indicate Unread
-                    const textClass = isSoldOut ? 'text-red-600 font-bold' : 'text-gray-900 font-bold';
-                    let displayMsg = notif.msg;
+                    const isAllStore = notif.isAllStore;
                     
+                    let iconBg = 'bg-blue-100 text-blue-600';
+                    let iconClass = 'fa-clipboard-check';
+                    let textClass = 'text-gray-900 font-bold';
+
+                    if (isSoldOut) {
+                        iconBg = 'bg-red-100 text-red-600';
+                        iconClass = 'fa-bolt';
+                        textClass = 'text-red-600 font-bold';
+                    } else if (isAllStore) {
+                        iconBg = 'bg-green-100 text-green-600';
+                        iconClass = 'fa-check-double';
+                        textClass = 'text-green-600 font-bold';
+                    }
+
+                    let displayMsg = notif.msg;
                     displayMsg = displayMsg.charAt(0).toUpperCase() + displayMsg.slice(1);
                     
-                    if (isSoldOut) {
-                        displayMsg = displayMsg.replace('updated Sold Out', 'updated Sold Out SKU:');
+                    if (isAllStore) {
+                        if (isSoldOut) {
+                            displayMsg = displayMsg.replace('All Store Update Sold Out', 'All Store Update Sold Out SKU:');
+                        } else {
+                            displayMsg = displayMsg.replace('All Store Update', 'All Store Update SKU :');
+                        }
                     } else {
-                        displayMsg = displayMsg.replace('updated', 'updated SKU:');
+                        if (isSoldOut) {
+                            displayMsg = displayMsg.replace('updated Sold Out', 'updated Sold Out SKU:');
+                        } else {
+                            displayMsg = displayMsg.replace('updated', 'updated SKU:');
+                        }
                     }
 
                     const notifId = new Date(notif.time).getTime().toString();
