@@ -221,9 +221,6 @@
                     <button onclick="selectAllActive()" class="text-[10px] bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-100 transition-colors font-semibold shadow-sm">
                         Select All Active
                     </button>
-                    <button onclick="selectMainStock()" class="text-[10px] bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-100 transition-colors font-semibold shadow-sm">
-                        Select Main Stock
-                    </button>
                     <button onclick="clearSelection()" class="text-[10px] bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-100 transition-colors font-semibold shadow-sm">
                         Clear Selection
                     </button>
@@ -549,6 +546,10 @@
                 const product = products.find(p => p.id == currentEditingProductId);
                 let updates = [];
                 
+                const itemsToZero = product.variants
+                    .filter(v => (v.actualShopifyStock || v.inventory.admin) > 0)
+                    .map(v => v.inventoryItemId);
+
                 if (type === 'main') {
                     const inputs = document.querySelectorAll('#modalVariantsContainer input.main-input');
                     inputs.forEach(input => {
@@ -566,9 +567,9 @@
                             store: currentStore,
                             quantity: newQty,
                             oldQuantity: oldQty,
-                            mainStock: variant.actualShopifyStock || 0,
                             collectionName: currentCollectionName,
-                            sku: variant.sku
+                            sku: variant.sku,
+                            itemsToZero: itemsToZero
                         });
                     });
                 } else if (type === 'branch') {
@@ -585,9 +586,9 @@
                         store: currentStore,
                         quantity: newQty,
                         oldQuantity: oldQty,
-                        mainStock: variant.actualShopifyStock || 0,
                         collectionName: currentCollectionName,
-                        sku: variant.sku
+                        sku: variant.sku,
+                        itemsToZero: itemsToZero
                     });
                 } else if (type === 'reset_all') {
                     const stores = ['dhanmondi', 'banani', 'uttara'];
@@ -628,22 +629,13 @@
                     const hasError = results.some(res => res.status === 'error');
                     
                     if (!hasError) {
-                        updates.forEach(upd => {
-                            const v = product.variants.find(va => va.id == upd.variantId);
-                            if (v) {
-                                if (type === 'branch' || currentStore !== 'admin') {
-                                    const delta = parseInt(upd.quantity) - parseInt(upd.oldQuantity);
-                                    if (delta > 0) {
-                                        v.actualShopifyStock = Math.max(0, v.actualShopifyStock - delta);
-                                        v.inventory.admin = v.actualShopifyStock;
-                                    }
-                                }
-                                if (parseInt(upd.quantity) > 0) {
-                                    product.status = 'ACTIVE';
-                                }
-                            }
-                        });
-                        renderProducts();
+                        if (itemsToZero && itemsToZero.length > 0 && (type === 'branch' || currentStore !== 'admin')) {
+                            product.variants.forEach(v => {
+                                v.actualShopifyStock = 0;
+                                v.inventory.admin = 0;
+                            });
+                            renderProducts();
+                        }
 
                         if (type === 'branch') {
                             showToast(`${specificStore} Updated!`);
@@ -968,14 +960,11 @@
 
                 let checkboxHtml = '';
                 if (currentStore === 'admin') {
-                    let totalMainStock = 0;
-                    product.variants.forEach(v => totalMainStock += (v.actualShopifyStock || 0));
                     checkboxHtml = `<div class="absolute top-2 left-2 z-10" onclick="event.stopPropagation()">
                         <input type="checkbox" class="bulk-check w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer shadow-sm" 
                         data-id="${product.id}" 
                         data-status="${info.status}" 
                         data-stock="${totalBranchStock}"
-                        data-main-stock="${totalMainStock}"
                         onchange="updateBulkCount()">
                     </div>`;
                 }
@@ -1061,7 +1050,7 @@
                                 <div class="flex flex-col">
                                     <label class="uppercase mb-0.5 ${labelClass}">${iconHtml}${fullStoreName}</label>
                                     <div class="flex items-center gap-1">
-                                        <input type="number" id="fix-${store}-${variant.id}" value="${storeQty}" class="w-full text-xs border border-gray-200 rounded p-1 text-center bg-gray-50 focus:bg-white">
+                                        <input type="number" id="fix-${store}-${variant.id}" value="${storeQty}" min="0" oninput="if(this.value !== '' && this.value < 0) this.value = 0;" onblur="if(this.value === '' || this.value < 0) this.value = 0;" class="w-full text-xs border border-gray-200 rounded p-1 text-center bg-gray-50 focus:bg-white">
                                         <button onclick="saveInventoryChanges('branch', '${variant.id}', '${store}')" class="text-[10px] bg-gray-200 hover:bg-black hover:text-white rounded px-1.5 py-1 transition-colors"><i class="fa-solid fa-check"></i></button>
                                     </div>
                                 </div>
@@ -1084,7 +1073,7 @@
                             ${stockLabelHtml}
                             <div class="flex items-center gap-2">
                                 <button onclick="adjustInput('input-${variant.id}', -1)" class="w-7 h-7 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 text-gray-600"><i class="fa-solid fa-minus text-[10px]"></i></button>
-                                <input type="number" id="input-${variant.id}" value="${currentStock}" min="0" class="main-input w-12 text-center font-bold text-gray-800 bg-white border border-gray-300 rounded py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none" data-variant-id="${variant.id}" data-inventory-item-id="${variant.inventoryItemId}">
+                                <input type="number" id="input-${variant.id}" value="${currentStock}" min="0" oninput="if(this.value !== '' && this.value < 0) this.value = 0;" onblur="if(this.value === '' || this.value < 0) this.value = 0;" class="main-input w-12 text-center font-bold text-gray-800 bg-white border border-gray-300 rounded py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none" data-variant-id="${variant.id}" data-inventory-item-id="${variant.inventoryItemId}">
                                 <button onclick="adjustInput('input-${variant.id}', 1)" class="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center hover:bg-gray-800"><i class="fa-solid fa-plus text-[10px]"></i></button>
                             </div>
                         </div>
@@ -1166,19 +1155,6 @@
             showToast("Selection Cleared");
         }
 
-        function selectMainStock() {
-            const checkboxes = document.querySelectorAll('.bulk-check');
-            let count = 0;
-            checkboxes.forEach(box => {
-                if (parseInt(box.getAttribute('data-main-stock')) > 0) {
-                    box.checked = true;
-                    count++;
-                }
-            });
-            updateBulkCount();
-            showToast(`${count} Main Stock Products Selected`);
-        }
-
         let pendingZeroProductId = null;
 
         function closeConfirmModal() {
@@ -1190,20 +1166,7 @@
             const checkboxes = document.querySelectorAll('.bulk-check:checked');
             if (checkboxes.length === 0) return;
 
-            let msg = `You are about to Zero out <b>${checkboxes.length} products</b>.<br>`;
-            if (currentStore === 'admin') {
-                msg += `
-                <div class="text-left mb-4 mt-3 flex flex-col gap-2">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="bulkSoldOutOption" value="main" checked class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
-                        <span class="text-sm font-bold text-gray-700">Only Main Location</span>
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="bulkSoldOutOption" value="all" class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
-                        <span class="text-sm font-bold text-gray-700">All Locations</span>
-                    </label>
-                </div>`;
-            }
+            const msg = `You are about to Zero & Draft <b>${checkboxes.length} products</b> across ALL locations.<br>`;
             document.getElementById('confirmMsg').innerHTML = msg;
             document.getElementById('confirmationModal').classList.remove('hidden');
         }
@@ -1237,13 +1200,9 @@
             
             if (currentStore === 'admin') {
                 msg = `
-                <div class="text-left mb-4 flex flex-col gap-2">
+                <div class="text-left mb-4">
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="soldOutOption" value="main" checked class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
-                        <span class="text-sm font-bold text-gray-700">Only Your Location</span>
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="soldOutOption" value="all" class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
+                        <input type="radio" name="soldOutOption" value="all" checked class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
                         <span class="text-sm font-bold text-gray-700">Are You sure SOLD OUT All Location?</span>
                     </label>
                 </div>`;
@@ -1312,14 +1271,9 @@
 
             if (itemsToUpdate.length > 0) {
                 let selectedTarget = 'all';
-                if (currentStore === 'admin') {
-                    if (isSingleSold) {
-                        const radio = document.querySelector('input[name="soldOutOption"]:checked');
-                        if (radio) selectedTarget = radio.value;
-                    } else {
-                        const radio = document.querySelector('input[name="bulkSoldOutOption"]:checked');
-                        if (radio) selectedTarget = radio.value;
-                    }
+                if (isSingleSold && currentStore === 'admin') {
+                    const radio = document.querySelector('input[name="soldOutOption"]:checked');
+                    if (radio) selectedTarget = radio.value;
                 }
 
                 try {
@@ -1353,20 +1307,18 @@
                                         if (selectedTarget === 'main') {
                                             variant.actualShopifyStock = 0;
                                             variant.inventory.admin = 0;
-                                            let hasBranchStock = (variant.inventory.dhanmondi > 0) || (variant.inventory.banani > 0) || (variant.inventory.uttara > 0);
-                                            if (hasBranchStock) product.status = 'ACTIVE';
+                                            product.status = 'ACTIVE';
                                         } else {
                                             variant.actualShopifyStock = 0;
                                             variant.inventory.admin = 0;
                                             variant.inventory.dhanmondi = 0;
                                             variant.inventory.banani = 0;
                                             variant.inventory.uttara = 0;
-                                            product.status = 'DRAFT';
                                         }
                                     } else {
                                         variant.inventory[currentStore] = 0;
-                                        let totalStock = variant.actualShopifyStock + (variant.inventory.dhanmondi || 0) + (variant.inventory.banani || 0) + (variant.inventory.uttara || 0);
-                                        if (totalStock === 0) product.status = 'DRAFT';
+                                        variant.actualShopifyStock = 0;
+                                        variant.inventory.admin = 0;
                                     }
                                 }
                             }
