@@ -382,6 +382,7 @@
                      <i class="fa-solid fa-triangle-exclamation text-3xl"></i>
                 </div>
                 <h2 class="text-xl font-bold text-red-600">Update Failed!</h2>
+                <p id="errorModalMsg" class="text-xs text-red-500 mt-2 font-semibold px-4 pb-2"></p>
             </div>
             <div class="p-6">
                 <button onclick="location.reload()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2">
@@ -625,17 +626,26 @@
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
-                        }).then(res => res.json());
+                        }).then(res => {
+                            if (!res.ok) throw new Error("Network/Server Error: " + res.status);
+                            return res.json();
+                        });
                     });
 
                     const results = await Promise.all(requests);
                     const hasError = results.some(res => res.status === 'error');
                     
                     if (!hasError) {
-                        if (itemsToZero && itemsToZero.length > 0 && (type === 'branch' || currentStore !== 'admin')) {
-                            product.variants.forEach(v => {
-                                v.actualShopifyStock = 0;
-                                v.inventory.admin = 0;
+                        if (type !== 'reset_all') {
+                            updates.forEach(update => {
+                                let diff = update.quantity - update.oldQuantity;
+                                const v = product.variants.find(vari => vari.id == update.variantId);
+                                if (v && diff !== 0) {
+                                    let newMainStock = (v.inventory.admin || 0) - diff;
+                                    if (newMainStock < 0) newMainStock = 0;
+                                    v.inventory.admin = newMainStock;
+                                    v.actualShopifyStock = newMainStock;
+                                }
                             });
                             renderProducts();
                         }
@@ -657,6 +667,8 @@
 
             } catch (error) {
                 console.error(error);
+                const errorMsgEl = document.getElementById('errorModalMsg');
+                if(errorMsgEl) errorMsgEl.innerText = error.message;
                 document.getElementById('errorModal').classList.remove('hidden');
             } finally {
                 btn.disabled = false;
@@ -1114,7 +1126,20 @@
         function closeModal() { document.getElementById('variantModal').classList.add('hidden'); currentEditingProductId = null; }
         function openImagePreview(src, title) { const m = document.getElementById('imagePreviewModal'); document.getElementById('previewImage').src = src; document.getElementById('previewTitle').innerText = title; m.classList.remove('hidden'); setTimeout(() => m.classList.remove('opacity-0'), 10); }
         function closeImagePreview(e, force) { if (force || !e || e.target?.id === 'imagePreviewModal' || e.target?.tagName !== 'IMG') { const m = document.getElementById('imagePreviewModal'); m.classList.add('opacity-0'); setTimeout(() => m.classList.add('hidden'), 300); } }
-        function showToast(msg) { const t = document.getElementById('toast'); document.getElementById('toastMsg').innerText = msg; t.classList.remove('translate-y-20', 'opacity-0'); setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000); }
+        function showToast(msg, isError = false) { 
+            const t = document.getElementById('toast'); 
+            const icon = t.querySelector('i');
+            if (isError) {
+                t.classList.replace('bg-gray-800', 'bg-red-600');
+                icon.className = 'fa-solid fa-circle-exclamation text-white';
+            } else {
+                t.classList.replace('bg-red-600', 'bg-gray-800');
+                icon.className = 'fa-solid fa-circle-check text-green-400';
+            }
+            document.getElementById('toastMsg').innerText = msg; 
+            t.classList.remove('translate-y-20', 'opacity-0'); 
+            setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000); 
+        }
         
         function searchProductById(productId) {
             clearFilters();
@@ -1343,6 +1368,7 @@
                         })
                     });
                     
+                    if (!response.ok) throw new Error("Network/Server Error: " + response.status);
                     const result = await response.json();
 
                     if (result.status === 'success') {
@@ -1387,7 +1413,9 @@
                 } catch (e) { 
                     console.error(e); 
                     closeConfirmModal();
-                    showToast("Error updating items! " + e.message);
+                    const errorMsgEl = document.getElementById('errorModalMsg');
+                    if(errorMsgEl) errorMsgEl.innerText = e.message;
+                    document.getElementById('errorModal').classList.remove('hidden');
                 }
             } else {
                 closeConfirmModal();
