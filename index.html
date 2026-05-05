@@ -618,7 +618,7 @@
 
                 if (updates.length > 0) {
                     const requests = updates.map(updateData => {
-                        const payload = { action: 'updateInventory', ...updateData };
+                        const payload = { action: 'updateInventory', currentStatus: product.status, ...updateData };
                         if (type === 'branch') payload.targetBranch = specificStore;
                         if (type === 'reset_all') payload.targetBranch = 'reset_all';
 
@@ -647,6 +647,13 @@
                                     v.actualShopifyStock = newMainStock;
                                 }
                             });
+                            
+                            // The logic to immediately change from Draft to Active in the UI
+                            if (product.status === 'DRAFT' || product.status === 'draft') {
+                                const hasStock = updates.some(u => u.quantity > 0);
+                                if (hasStock) product.status = 'ACTIVE';
+                            }
+                            
                             renderProducts();
                         }
 
@@ -1234,12 +1241,12 @@
                 msg += `
                 <div class="text-left mb-4 mt-3 border border-gray-200 p-3 rounded bg-gray-50">
                     <label class="flex items-center gap-2 cursor-pointer mb-2">
-                        <input type="radio" name="soldOutOption" value="all" checked class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
-                        <span class="text-sm font-bold text-gray-700">Zero ALL Locations & Draft</span>
+                        <input type="radio" name="soldOutOption" value="main" checked class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="text-sm font-bold text-gray-700">Zero MAIN Location Only</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="soldOutOption" value="main" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                        <span class="text-sm font-bold text-gray-700">Zero MAIN Location Only</span>
+                        <input type="radio" name="soldOutOption" value="all" class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
+                        <span class="text-sm font-bold text-gray-700">Zero ALL Locations & Draft</span>
                     </label>
                 </div>`;
             }
@@ -1278,12 +1285,12 @@
                 msg = `
                 <div class="text-left mb-4">
                     <label class="flex items-center gap-2 cursor-pointer mb-2">
-                        <input type="radio" name="soldOutOption" value="all" checked class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
-                        <span class="text-sm font-bold text-gray-700">Are You sure SOLD OUT All Location?</span>
+                        <input type="radio" name="soldOutOption" value="main" checked class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="text-sm font-bold text-gray-700">SOLD OUT Main Location Only</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="soldOutOption" value="main" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                        <span class="text-sm font-bold text-gray-700">SOLD OUT Main Location Only</span>
+                        <input type="radio" name="soldOutOption" value="all" class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
+                        <span class="text-sm font-bold text-gray-700">Are You sure SOLD OUT All Location?</span>
                     </label>
                 </div>`;
             } else {
