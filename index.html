@@ -657,13 +657,13 @@
                             renderProducts();
                         }
 
-                        if (type === 'branch') {
+if (type === 'branch') {
                             showToast(`${specificStore} Updated!`);
                         } else if (type === 'reset_all') {
+                            renderProducts();
                             showToast("All Branches Reset!");
                         } else {
                             closeModal();
-                            performSearch(document.getElementById('searchInput').value, selectedCollectionId);
                             showToast("Updated Successfully!");
                         }
                     } else {
