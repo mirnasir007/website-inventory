@@ -111,8 +111,8 @@
         </div>
     </div>
 
-    <div id="imagePreviewModal" class="fixed inset-0 z-[150] bg-black/95 hidden flex items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeImagePreview(event)">
-        <button onclick="closeImagePreview(null, true)" class="absolute top-5 right-5 z-[160] text-white/80 hover:text-white bg-gray-800/50 hover:bg-gray-700/80 rounded-full w-10 h-10 flex items-center justify-center transition-all backdrop-blur-md border border-white/10 shadow-lg">
+    <div id="imagePreviewModal" class="fixed inset-0 z-[250] bg-black/95 hidden flex items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeImagePreview(event)">
+        <button onclick="closeImagePreview(null, true)" class="absolute top-5 right-5 z-[260] text-white/80 hover:text-white bg-gray-800/50 hover:bg-gray-700/80 rounded-full w-10 h-10 flex items-center justify-center transition-all backdrop-blur-md border border-white/10 shadow-lg">
             <i class="fa-solid fa-times text-xl"></i>
         </button>
         <div class="relative max-w-5xl w-full max-h-screen flex flex-col items-center justify-center">
@@ -387,6 +387,26 @@
             <div class="p-6">
                 <button onclick="location.reload()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2">
                     <i class="fa-solid fa-rotate-right"></i> OK, Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="allImagesModal" class="fixed inset-0 z-[200] bg-black/80 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+                <h3 class="font-bold text-gray-800"><i class="fa-regular fa-images text-blue-500 mr-2"></i>Product Images</h3>
+                <button onclick="closeAllImagesModal()" class="text-gray-400 hover:text-red-500 transition-colors">
+                    <i class="fa-solid fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto custom-scroll flex-grow">
+                <div id="allImagesContainer" class="grid grid-cols-3 md:grid-cols-4 gap-3"></div>
+            </div>
+            <div class="p-4 border-t bg-gray-50 rounded-b-xl flex justify-between items-center">
+                <button onclick="selectAllImages()" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded transition-colors">Select All</button>
+                <button id="downloadImagesBtn" onclick="downloadSelectedImages()" disabled class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+                    <i class="fa-solid fa-download mr-1"></i> Download
                 </button>
             </div>
         </div>
@@ -1019,7 +1039,7 @@ if (type === 'branch') {
                 const isDraft = info.status === 'DRAFT';
                 const soldBtnDisabled = isDraft ? 'disabled' : '';
 
-                card.innerHTML = `${checkboxHtml}<div class="retro-img-container relative" onclick="openImagePreview('${product.image}', '${product.title.replace(/'/g, "\\'")}')"><img src="${product.image}" class="retro-img" onerror="this.src='https://via.placeholder.com/300?text=No+Image'"><div class="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${info.colorClass}">${info.status}</div></div><div class="p-3 flex flex-col flex-grow"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">${product.type || 'Product'}</span><span class="text-[10px] text-gray-400 font-mono">SKU: ${mainSku}</span></div><h3 class="font-bold text-gray-800 text-sm leading-tight mb-0.5 line-clamp-2">${product.title}</h3><p class="text-[10px] text-gray-500 mb-2 font-bold">${product.vendor || 'No Vendor'}</p>
+                card.innerHTML = `${checkboxHtml}<div class="retro-img-container relative" onclick="openImagePreview('${product.image}', '${product.title.replace(/'/g, "\\'")}')"><img src="${product.image}" class="retro-img" onerror="this.src='https://via.placeholder.com/300?text=No+Image'"><div class="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${info.colorClass}">${info.status}</div></div><div class="p-3 flex flex-col flex-grow"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">${product.type || 'Product'}</span><span class="text-[10px] text-gray-400 font-mono">SKU: ${mainSku}</span></div><h3 class="font-bold text-gray-800 text-sm leading-tight mb-0.5 line-clamp-2">${product.title}</h3><div class="flex justify-between items-center mb-2"><p class="text-[10px] text-gray-500 font-bold">${product.vendor || 'No Vendor'}</p><button onclick="openAllImagesModal('${product.id}')" class="text-[9px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded border border-gray-300 font-bold transition-colors"><i class="fa-regular fa-images mr-1"></i> All Images</button></div>
 <div class="mt-auto">
     <div class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 mb-1">
         <i class="fas fa-warehouse mr-1"></i> All Location Stock: ${totalAllLocationsStock}
@@ -1717,6 +1737,146 @@ if (type === 'branch') {
         }
 
         function closePosModal() { document.getElementById('posProductModal').classList.add('hidden'); }
+
+        // --- ALL IMAGES & DOWNLOAD LOGIC ---
+        let selectedImagesToDownload = [];
+
+        function openAllImagesModal(productId) {
+            const product = products.find(p => p.id == productId);
+            if (!product || !product.images || product.images.length === 0) {
+                showToast('No extra images found', true);
+                return;
+            }
+            
+            selectedImagesToDownload = [];
+            const container = document.getElementById('allImagesContainer');
+            container.innerHTML = '';
+            
+            product.images.forEach((url, idx) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'relative cursor-pointer border-2 border-transparent rounded overflow-hidden hover:border-blue-300 transition-all bg-gray-100';
+                wrapper.style.aspectRatio = '2/3';
+                wrapper.onclick = () => toggleImageSelection(url, wrapper);
+                
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'w-full h-full object-cover';
+                
+                const check = document.createElement('div');
+                check.className = 'absolute top-2 right-2 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center opacity-0 transition-opacity z-10 shadow-sm';
+                check.innerHTML = '<i class="fa-solid fa-check text-[10px]"></i>';
+
+                const viewBtn = document.createElement('button');
+                viewBtn.className = 'absolute bottom-2 left-2 right-2 bg-black/60 hover:bg-black/90 text-white text-[10px] font-bold py-1.5 rounded transition-colors z-20 backdrop-blur-sm flex items-center justify-center';
+                viewBtn.innerHTML = '<i class="fa-regular fa-eye mr-1"></i> VIEW';
+                viewBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    openImagePreview(url, product.title.replace(/'/g, "\\'"));
+                };
+                
+                wrapper.appendChild(img);
+                wrapper.appendChild(check);
+                wrapper.appendChild(viewBtn);
+                wrapper.dataset.url = url;
+                container.appendChild(wrapper);
+            });
+            
+            updateDownloadBtn();
+            document.getElementById('allImagesModal').classList.remove('hidden');
+        }
+
+        function toggleImageSelection(url, element) {
+            const index = selectedImagesToDownload.indexOf(url);
+            const check = element.querySelector('div.absolute');
+            if (index > -1) {
+                selectedImagesToDownload.splice(index, 1);
+                element.classList.remove('border-blue-600');
+                element.classList.add('border-transparent');
+                check.classList.add('opacity-0');
+            } else {
+                selectedImagesToDownload.push(url);
+                element.classList.remove('border-transparent');
+                element.classList.add('border-blue-600');
+                check.classList.remove('opacity-0');
+            }
+            updateDownloadBtn();
+        }
+
+        function selectAllImages() {
+            const wrappers = document.querySelectorAll('#allImagesContainer > div');
+            let allSelected = selectedImagesToDownload.length === wrappers.length;
+            
+            selectedImagesToDownload = [];
+            
+            wrappers.forEach(wrapper => {
+                const url = wrapper.dataset.url;
+                const check = wrapper.querySelector('div.absolute');
+                if (!allSelected) {
+                    selectedImagesToDownload.push(url);
+                    wrapper.classList.remove('border-transparent');
+                    wrapper.classList.add('border-blue-600');
+                    check.classList.remove('opacity-0');
+                } else {
+                    wrapper.classList.remove('border-blue-600');
+                    wrapper.classList.add('border-transparent');
+                    check.classList.add('opacity-0');
+                }
+            });
+            updateDownloadBtn();
+        }
+
+        function updateDownloadBtn() {
+            const btn = document.getElementById('downloadImagesBtn');
+            if (selectedImagesToDownload.length > 0) {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-download mr-1"></i> Download (${selectedImagesToDownload.length})`;
+            } else {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-download mr-1"></i> Download`;
+            }
+        }
+
+        function closeAllImagesModal() {
+            document.getElementById('allImagesModal').classList.add('hidden');
+            selectedImagesToDownload = [];
+        }
+
+        async function downloadSelectedImages() {
+            if (selectedImagesToDownload.length === 0) return;
+            const btn = document.getElementById('downloadImagesBtn');
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Processing...`;
+            btn.disabled = true;
+
+            for (let i = 0; i < selectedImagesToDownload.length; i++) {
+                const url = selectedImagesToDownload[i];
+                try {
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    const objectUrl = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = objectUrl;
+                    const fileName = url.split('/').pop().split('?')[0] || `product_image_${i+1}.jpg`;
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(objectUrl);
+                } catch (error) {
+                    // Fallback to direct tab opening if browser strictly blocks CORS downloads from Shopify CDN
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = '';
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+                // Minor delay to prevent browser crash/blocking on multiple loops
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            
+            closeAllImagesModal();
+        }
 
     </script>
 </body>
