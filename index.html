@@ -412,7 +412,21 @@
         </div>
     </div>
 
+    <div id="globalStockModal" class="fixed inset-0 z-[300] bg-black/60 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden">
+            <div class="p-4 border-b bg-gray-100 flex justify-between items-center">
+                <h3 id="globalStockTitle" class="font-bold text-gray-800 text-sm">Global Stock</h3>
+                <button onclick="closeGlobalStockPopup()" class="text-gray-500 hover:text-red-500 transition-colors">
+                    <i class="fa-solid fa-times text-lg"></i>
+                </button>
+            </div>
+            <div id="globalStockContent" class="p-4 bg-white">
+            </div>
+        </div>
+    </div>
+
     <script>
+        const GLOBAL_STOCK_URL = "https://global-stock-backend2.onrender.com/api";
         // Main Variables
         let products = [];
         let collectionsList = [];
@@ -1039,7 +1053,7 @@ if (type === 'branch') {
                 const isDraft = info.status === 'DRAFT';
                 const soldBtnDisabled = isDraft ? 'disabled' : '';
 
-                card.innerHTML = `${checkboxHtml}<div class="retro-img-container relative" onclick="openImagePreview('${product.image}', '${product.title.replace(/'/g, "\\'")}')"><img src="${product.image}" class="retro-img" onerror="this.src='https://via.placeholder.com/300?text=No+Image'"><div class="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${info.colorClass}">${info.status}</div></div><div class="p-3 flex flex-col flex-grow"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">${product.type || 'Product'}</span><span class="text-[10px] text-gray-400 font-mono">SKU: ${mainSku}</span></div><h3 class="font-bold text-gray-800 text-sm leading-tight mb-0.5 line-clamp-2">${product.title}</h3><div class="flex justify-between items-center mb-2"><p class="text-[10px] text-gray-500 font-bold">${product.vendor || 'No Vendor'}</p><button onclick="openAllImagesModal('${product.id}')" class="text-[9px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded border border-gray-300 font-bold transition-colors"><i class="fa-regular fa-images mr-1"></i> All Images</button></div>
+                card.innerHTML = `${checkboxHtml}<div class="retro-img-container relative" onclick="openImagePreview('${product.image}', '${product.title.replace(/'/g, "\\'")}')"><img src="${product.image}" class="retro-img" onerror="this.src='https://via.placeholder.com/300?text=No+Image'"><div class="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${info.colorClass}">${info.status}</div></div><div class="p-3 flex flex-col flex-grow"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">${product.type || 'Product'}</span><span class="text-[10px] text-blue-600 font-mono font-bold cursor-pointer hover:underline" onclick="event.stopPropagation(); openGlobalStockPopup('${mainSku}')" title="Click to view global stock">SKU: ${mainSku}</span></div><h3 class="font-bold text-gray-800 text-sm leading-tight mb-0.5 line-clamp-2">${product.title}</h3><div class="flex justify-between items-center mb-2"><p class="text-[10px] text-gray-500 font-bold">${product.vendor || 'No Vendor'}</p><button onclick="openAllImagesModal('${product.id}')" class="text-[9px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded border border-gray-300 font-bold transition-colors"><i class="fa-regular fa-images mr-1"></i> All Images</button></div>
 <div class="mt-auto">
     <div class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 mb-1">
         <i class="fas fa-warehouse mr-1"></i> All Location Stock: ${totalAllLocationsStock}
@@ -1876,6 +1890,85 @@ if (type === 'branch') {
             }
             
             closeAllImagesModal();
+        }
+
+        const globalStockStores = [
+            {code: "100010001", name: "PFF PREMIUM_WH"},
+            {code: "100010004", name: "E-STORE"},
+            {code: "100010003", name: "BANANI"},
+            {code: "100010002", name: "DHANMONDI"},
+            {code: "100010006", name: "Uttara"}
+        ];
+
+        function closeGlobalStockPopup() {
+            document.getElementById('globalStockModal').classList.add('hidden');
+        }
+
+        async function openGlobalStockPopup(sku) {
+            if (!sku || sku === 'N/A') {
+                showToast("Invalid SKU", true);
+                return;
+            }
+            
+            const modal = document.getElementById('globalStockModal');
+            const content = document.getElementById('globalStockContent');
+            const title = document.getElementById('globalStockTitle');
+            
+            title.innerText = `SKU: ${sku}`;
+            content.innerHTML = '<div class="text-center py-6"><div class="loader loader-small mb-2"></div><p class="text-xs text-gray-500 font-bold">Fetching Stock...</p></div>';
+            modal.classList.remove('hidden');
+
+            try {
+                const response = await fetch(GLOBAL_STOCK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: "check_bulk",
+                        barcodes: [sku],
+                        stores: globalStockStores.map(s => s.code)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.results && data.results[sku]) {
+                    const res = data.results[sku];
+                    const mrp = res.mrp || 0;
+                    let grandTotalStock = 0;
+                    
+                    let html = `
+                        <div class="flex justify-between items-center px-2 pb-2 border-b border-gray-200 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                            <span class="w-1/2 text-left">Store Name</span>
+                            <span class="w-1/4 text-center">MRP</span>
+                            <span class="w-1/4 text-right">Available Stock</span>
+                        </div>
+                        <div class="flex flex-col gap-2 mt-2">`;
+                    
+                    globalStockStores.forEach((store) => {
+                        const qty = res.stockByStore[store.code] || 0;
+                        grandTotalStock += qty;
+                        html += `
+                        <div class="flex justify-between items-center bg-gray-50 p-2 border border-gray-200 rounded text-xs font-semibold">
+                            <span class="text-gray-700 w-1/2 truncate">${store.name}</span>
+                            <span class="text-gray-500 w-1/4 text-center">${mrp}</span>
+                            <span class="w-1/4 text-right ${qty > 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}">${qty}</span>
+                        </div>`;
+                    });
+                    
+                    html += `
+                        <div class="mt-3 pt-3 border-t border-gray-300 flex justify-between items-center font-bold text-sm">
+                            <span class="text-gray-800 uppercase">Total Stock</span>
+                            <span class="text-blue-600 text-lg">${grandTotalStock}</span>
+                        </div>
+                    </div>`;
+                    
+                    content.innerHTML = html;
+                } else {
+                    content.innerHTML = '<p class="text-center text-red-500 text-sm font-bold py-4">No stock data found for this SKU.</p>';
+                }
+            } catch (error) {
+                content.innerHTML = '<p class="text-center text-red-500 text-sm font-bold py-4">Server Error! Failed to fetch data.</p>';
+            }
         }
 
     </script>
