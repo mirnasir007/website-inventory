@@ -1936,31 +1936,41 @@ if (type === 'branch') {
                     const mrp = res.mrp || 0;
                     let grandTotalStock = 0;
                     
+                    // Filter stores based on current user
+                    let storesToShow = globalStockStores;
+                    if (currentStore !== 'admin') {
+                        const userStoreCode = POS_STORE_MAP[currentStore];
+                        storesToShow = globalStockStores.filter(s => s.code === userStoreCode);
+                    }
+                    
                     let html = `
-                        <div class="flex justify-between items-center px-2 pb-2 border-b border-gray-200 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <div class="flex justify-between items-end px-2 pb-3 border-b border-gray-200 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                             <span class="w-1/2 text-left">Store Name</span>
                             <span class="w-1/4 text-center">MRP</span>
-                            <span class="w-1/4 text-right">Available Stock</span>
+                            <span class="w-1/4 text-right leading-tight">Available<br>Stock</span>
                         </div>
-                        <div class="flex flex-col gap-2 mt-2">`;
+                        <div class="flex flex-col gap-2 mt-3">`;
                     
-                    globalStockStores.forEach((store) => {
+                    storesToShow.forEach((store) => {
                         const qty = res.stockByStore[store.code] || 0;
                         grandTotalStock += qty;
                         html += `
-                        <div class="flex justify-between items-center bg-gray-50 p-2 border border-gray-200 rounded text-xs font-semibold">
-                            <span class="text-gray-700 w-1/2 truncate">${store.name}</span>
+                        <div class="flex justify-between items-center bg-white p-2.5 border border-gray-200 rounded-md text-xs font-semibold shadow-sm">
+                            <span class="text-gray-600 w-1/2 truncate">${store.name}</span>
                             <span class="text-gray-500 w-1/4 text-center">${mrp}</span>
-                            <span class="w-1/4 text-right ${qty > 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}">${qty}</span>
+                            <span class="w-1/4 text-right text-sm ${qty > 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}">${qty}</span>
                         </div>`;
                     });
                     
-                    html += `
-                        <div class="mt-3 pt-3 border-t border-gray-300 flex justify-between items-center font-bold text-sm">
-                            <span class="text-gray-800 uppercase">Total Stock</span>
-                            <span class="text-blue-600 text-lg">${grandTotalStock}</span>
-                        </div>
-                    </div>`;
+                    if (currentStore === 'admin') {
+                        html += `
+                            <div class="mt-3 pt-4 border-t border-gray-200 flex justify-between items-center font-extrabold text-sm">
+                                <span class="text-slate-800 uppercase tracking-wide">TOTAL STOCK</span>
+                                <span class="text-blue-600 text-xl">${grandTotalStock}</span>
+                            </div>`;
+                    }
+                    
+                    html += `</div>`;
                     
                     content.innerHTML = html;
                 } else {
