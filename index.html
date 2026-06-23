@@ -598,6 +598,20 @@
                         const oldQty = variant.inventory[currentStore] || 0;
                         variant.inventory[currentStore] = newQty; 
 
+                        let newSku = undefined;
+                        let newPrice = undefined;
+                        let oldSku = variant.sku;
+
+                        if (currentStore === 'admin') {
+                            const skuInput = document.getElementById(`sku-${variantId}`);
+                            const priceInput = document.getElementById(`price-${variantId}`);
+                            if (skuInput) newSku = skuInput.value;
+                            if (priceInput) newPrice = priceInput.value;
+                            
+                            if (newSku) variant.sku = newSku;
+                            if (newPrice) variant.price = newPrice;
+                        }
+
                         updates.push({
                             productId: product.id,
                             variantId: variantId,
@@ -606,7 +620,9 @@
                             quantity: newQty,
                             oldQuantity: oldQty,
                             collectionName: currentCollectionName,
-                            sku: variant.sku,
+                            sku: oldSku,
+                            newSku: newSku,
+                            newPrice: newPrice,
                             itemsToZero: itemsToZero
                         });
                     });
@@ -1090,7 +1106,7 @@ if (type === 'branch') {
             const container = document.getElementById('modalVariantsContainer');
             container.innerHTML = '';
             
-            product.variants.forEach(variant => {
+            product.variants.forEach((variant, index) => {
                 const currentStock = variant.inventory[currentStore] || 0;
                 let stockDisplayHtml = '';
                 let stockLabelHtml = '';
@@ -1148,6 +1164,20 @@ if (type === 'branch') {
 
                 let variantDisplayPrice = variant.price !== 'N/A' ? Math.round(parseFloat(variant.price)) : 'N/A';
                 
+                let priceHtml = `<span class="text-[9px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-200">${variantDisplayPrice !== 'N/A' ? 'Price: ' + variantDisplayPrice : ''}</span>`;
+                let skuHtml = `<p class="text-[10px] text-gray-400 font-mono truncate">${variant.sku}</p>`;
+                let applyAllHtml = '';
+
+                if (currentStore === 'admin') {
+                    priceHtml = `<div class="flex items-center gap-1"><span class="text-[9px] font-bold text-green-700">Price:</span><input type="number" id="price-${variant.id}" value="${variantDisplayPrice !== 'N/A' ? variantDisplayPrice : ''}" class="w-16 text-xs border border-green-300 rounded px-1 py-0.5 text-green-700 font-bold focus:outline-none focus:ring-1 focus:ring-green-500 bg-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"></div>`;
+                    skuHtml = `<div class="flex items-center gap-1 mt-1"><span class="text-[9px] text-gray-400 font-bold">SKU:</span><input type="text" id="sku-${variant.id}" value="${variant.sku}" class="w-full max-w-[120px] text-[10px] font-mono border border-gray-300 rounded px-1 py-0.5 text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"></div>`;
+                    
+                    // Show "Apply to All" ONLY on the first variant
+                    if (index === 0) {
+                        applyAllHtml = `<button onclick="applyToAllVariants('${variant.id}')" class="mt-1 text-[9px] bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-0.5 rounded border border-blue-200 transition-colors flex items-center gap-1"><i class="fa-solid fa-copy"></i> Apply to All</button>`;
+                    }
+                }
+
                 const div = document.createElement('div');
                 div.className = 'bg-gray-50 p-3 rounded-lg border border-gray-100 mb-3 last:mb-0';
                 div.innerHTML = `
@@ -1155,9 +1185,10 @@ if (type === 'branch') {
                         <div class="flex-1 min-w-0 pr-2">
                             <div class="flex items-center gap-2">
                                 <p class="font-semibold text-gray-700 text-xs truncate">${variant.title}</p>
-                                <span class="text-[9px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-200">${variantDisplayPrice !== 'N/A' ? 'Price: ' + variantDisplayPrice : ''}</span>
+                                ${priceHtml}
                             </div>
-                            <p class="text-[10px] text-gray-400 font-mono truncate">${variant.sku}</p>
+                            ${skuHtml}
+                            ${applyAllHtml}
                             ${stockDisplayHtml}
                         </div>
                         <div class="flex flex-col items-end gap-1">
@@ -1174,6 +1205,19 @@ if (type === 'branch') {
                 container.appendChild(div);
             });
             document.getElementById('variantModal').classList.remove('hidden');
+        }
+
+        function applyToAllVariants(sourceVariantId) {
+            const sourcePrice = document.getElementById(`price-${sourceVariantId}`).value;
+            const sourceSku = document.getElementById(`sku-${sourceVariantId}`).value;
+            
+            const allPriceInputs = document.querySelectorAll('input[id^="price-"]');
+            const allSkuInputs = document.querySelectorAll('input[id^="sku-"]');
+            
+            allPriceInputs.forEach(input => input.value = sourcePrice);
+            allSkuInputs.forEach(input => input.value = sourceSku);
+            
+            showToast("Applied to all variants");
         }
 
         function adjustInput(inputId, amount) { const input = document.getElementById(inputId); let val = parseInt(input.value) || 0; val += amount; if (val < 0) val = 0; input.value = val; }
