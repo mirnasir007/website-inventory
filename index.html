@@ -1067,8 +1067,8 @@ if (type === 'branch') {
                 card.className = 'product-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group flex flex-col h-full relative';
                 
                 const isDraft = info.status === 'DRAFT';
-                const isOutOfStock = info.totalStock <= 0;
-                const soldBtnDisabled = (isDraft || isOutOfStock) ? 'disabled' : '';
+                const isStoreOutOfStock = (currentStore !== 'admin') && (info.totalStock <= 0);
+                const soldBtnDisabled = (isDraft || isStoreOutOfStock) ? 'disabled' : '';
                 
                 let prices = product.variants.map(v => Math.round(parseFloat(v.price))).filter(p => !isNaN(p));
                 let productPrice = 'N/A';
