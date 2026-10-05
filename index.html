@@ -458,6 +458,26 @@
 
     <script>
         const GLOBAL_STOCK_URL = "https://global-stock-backend2.onrender.com/api";
+        
+        // --- SECURITY: AUTO ADD API KEY TO ALL BACKEND REQUESTS ---
+        const API_KEY = "pff_secure_pass_by_nasir_61983987654";
+        const originalFetch = window.fetch;
+        window.fetch = async function() {
+            let [resource, config] = arguments;
+            if (typeof resource === 'string' && resource.includes('inventory-backend-rwfi.onrender.com')) {
+                config = config || {};
+                config.headers = config.headers || {};
+                config.headers['x-api-key'] = API_KEY;
+            }
+            const response = await originalFetch(resource, config);
+            if (response.status === 401) {
+                if (typeof logout === "function") {
+                    logout();
+                }
+            }
+            return response;
+        };
+
         // Main Variables
         let products = [];
         let collectionsList = [];
@@ -2063,22 +2083,7 @@ if (type === 'branch') {
                     const mrp = res.mrp || 0;
                     let grandTotalStock = 0;
                     
-                    // --- SECURITY: AUTO ADD API KEY TO ALL BACKEND REQUESTS ---
-        const API_KEY = "pff_secure_pass_by_nasir_61983987654";
-        const originalFetch = window.fetch;
-        window.fetch = async function() {
-            let [resource, config] = arguments;
-            if (typeof resource === 'string' && resource.includes('inventory-backend-rwfi.onrender.com')) {
-                config = config || {};
-                config.headers = config.headers || {};
-                config.headers['x-api-key'] = API_KEY;
-            }
-            const response = await originalFetch(resource, config);
-            if (response.status === 401) {
-                logout();
-            }
-            return response;
-        };
+                    
                     // Filter stores based on current user
                     let storesToShow = globalStockStores;
                     if (currentStore !== 'admin') {
