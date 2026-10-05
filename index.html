@@ -159,17 +159,7 @@
                             <div class="flex items-center justify-end gap-1 text-green-700 font-bold text-sm uppercase tracking-wide">
                                 <i class="fa-solid fa-store text-xs"></i> <span id="displayStoreName">...</span>
                             </div>
-                            <button onclick="logout()" class="text-[10px] text-red-500 font-bold hover:underline mt-0.5 mr-3">LOGOUT <i class="fa-solid fa-right-from-bracket ml-0.5"></i></button>
-                        </div>
-                        <div class="relative ml-2 border-l border-gray-200 pl-3">
-                            <button onclick="document.getElementById('profileMenu').classList.toggle('hidden')" class="text-gray-500 hover:text-gray-800 focus:outline-none">
-                                <i class="fa-solid fa-ellipsis-vertical text-lg"></i>
-                            </button>
-                            <div id="profileMenu" class="hidden absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-                                <button onclick="openChangePasswordModal()" class="block w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 font-medium">
-                                    <i class="fa-solid fa-key mr-1"></i> Change Password
-                                </button>
-                            </div>
+                            <button onclick="logout()" class="text-[10px] text-red-500 font-bold hover:underline mt-0.5">LOGOUT <i class="fa-solid fa-right-from-bracket ml-0.5"></i></button>
                         </div>
                     </div>
                 </div>
@@ -435,31 +425,6 @@
         </div>
     </div>
 
-    <div id="changePasswordModal" class="fixed inset-0 z-[300] bg-black/60 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden">
-            <div class="p-4 border-b bg-gray-100 flex justify-between items-center">
-                <h3 class="font-bold text-gray-800 text-sm">Change Password</h3>
-                <button onclick="closeChangePasswordModal()" class="text-gray-500 hover:text-red-500 transition-colors">
-                    <i class="fa-solid fa-times text-lg"></i>
-                </button>
-            </div>
-            <div class="p-5 bg-white space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Old Password</label>
-                    <input type="password" id="oldPasswordInput" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-green-500 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">New Password</label>
-                    <input type="password" id="newPasswordInput" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-green-500 text-sm">
-                </div>
-                <p id="passwordErrorMsg" class="text-red-500 text-xs hidden"></p>
-                <button id="submitPasswordChangeBtn" onclick="submitPasswordChange()" class="w-full bg-gray-900 text-white font-bold py-2 rounded hover:bg-gray-800 transition-colors text-sm">
-                    Change
-                </button>
-            </div>
-        </div>
-    </div>
-
     <script>
         const GLOBAL_STOCK_URL = "https://global-stock-backend2.onrender.com/api";
         // Main Variables
@@ -543,14 +508,12 @@
                 const data = await response.json();
                 if (data.status === 'success') {
                     localStorage.setItem('storeUser', selectedStore);
-                    localStorage.setItem('authToken', data.token);
                     currentStore = selectedStore;
                     document.getElementById('displayStoreName').innerText = currentStore;
                     document.getElementById('loginOverlay').style.display = 'none';
                     loadInitialData();
                     syncPosUser();
                 } else {
-                    document.getElementById('loginError').innerText = data.message || "Incorrect password";
                     document.getElementById('loginError').classList.remove('hidden');
                     btn.disabled = false; btn.innerHTML = `<span>Access Dashboard</span>`;
                 }
@@ -560,72 +523,7 @@
             }
         }
 
-        function logout() { localStorage.removeItem('storeUser'); localStorage.removeItem('authToken'); location.reload(); }
-
-        function openChangePasswordModal() {
-            document.getElementById('profileMenu').classList.add('hidden');
-            document.getElementById('oldPasswordInput').value = '';
-            document.getElementById('newPasswordInput').value = '';
-            document.getElementById('passwordErrorMsg').classList.add('hidden');
-            document.getElementById('changePasswordModal').classList.remove('hidden');
-        }
-
-        function closeChangePasswordModal() {
-            document.getElementById('changePasswordModal').classList.add('hidden');
-        }
-
-        async function submitPasswordChange() {
-            const oldPassword = document.getElementById('oldPasswordInput').value;
-            const newPassword = document.getElementById('newPasswordInput').value;
-            const btn = document.getElementById('submitPasswordChangeBtn');
-            const errorMsg = document.getElementById('passwordErrorMsg');
-            
-            if (!oldPassword || !newPassword) {
-                errorMsg.innerText = "Please fill both fields.";
-                errorMsg.classList.remove('hidden');
-                return;
-            }
-            
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
-            errorMsg.classList.add('hidden');
-
-            try {
-                const token = localStorage.getItem('authToken');
-                const response = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ action: 'changePassword', store: currentStore, oldPassword: oldPassword, newPassword: newPassword })
-                });
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    alert("Password changed successfully! Please login again.");
-                    logout();
-                } else {
-                    errorMsg.innerText = data.message || "Update failed";
-                    errorMsg.classList.remove('hidden');
-                    btn.disabled = false;
-                    btn.innerHTML = `Change`;
-                }
-            } catch (error) {
-                errorMsg.innerText = "Network Error";
-                errorMsg.classList.remove('hidden');
-                btn.disabled = false;
-                btn.innerHTML = `Change`;
-            }
-        }
-        
-        document.addEventListener('click', function(e) {
-            const menu = document.getElementById('profileMenu');
-            const menuBtn = menu ? menu.previousElementSibling : null;
-            if (menu && !menu.contains(e.target) && e.target !== menuBtn && (!menuBtn || !menuBtn.contains(e.target))) {
-                menu.classList.add('hidden');
-            }
-        });
+        function logout() { localStorage.removeItem('storeUser'); location.reload(); }
 
         // --- VIEW TOGGLE LOGIC ---
         function openPosSyncView() {
@@ -774,13 +672,9 @@
                         if (type === 'branch') payload.targetBranch = specificStore;
                         if (type === 'reset_all') payload.targetBranch = 'reset_all';
 
-                        const token = localStorage.getItem('authToken');
                         return fetch(WEB_APP_URL, {
                             method: 'POST',
-                            headers: { 
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
                         }).then(res => {
                             if (!res.ok) throw new Error("Network/Server Error: " + res.status);
@@ -853,10 +747,7 @@ if (type === 'branch') {
         }
 
         async function fetchData() {
-            const token = localStorage.getItem('authToken');
-            const response = await fetch(`${WEB_APP_URL}?action=getInitialData&store=${currentStore}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await fetch(`${WEB_APP_URL}?action=getInitialData&store=${currentStore}`);
             const data = await response.json();
             if(data.status === 'success') {
                 collectionsList = data.collections.sort((a, b) => a.title.localeCompare(b.title));
@@ -869,10 +760,7 @@ if (type === 'branch') {
 
         async function fetchNotificationsOnly() {
             try {
-                const token = localStorage.getItem('authToken');
-                const response = await fetch(`${WEB_APP_URL}?action=getInitialData&store=${currentStore}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await fetch(`${WEB_APP_URL}?action=getInitialData&store=${currentStore}`);
                 const data = await response.json();
                 if(data.status === 'success' && data.notifications) {
                     handleNotifications(data.notifications, data.readData);
@@ -954,13 +842,9 @@ if (type === 'branch') {
                     
                     div.onclick = () => { 
                         // Send single read to backend
-                        const token = localStorage.getItem('authToken');
                         fetch(WEB_APP_URL, {
                             method: 'POST',
-                            headers: { 
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ action: 'markSingleRead', store: currentStore, notifId: notifId })
                         });
                         
@@ -1011,10 +895,7 @@ if (type === 'branch') {
                 if(cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
                 url += `&sortKey=${sortKey}&reverse=${reverse}`;
 
-                const token = localStorage.getItem('authToken');
-                const response = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await fetch(url);
                 const data = await response.json();
 
                 if(data.status === 'success') {
@@ -1473,13 +1354,9 @@ if (type === 'branch') {
             if (unreadElements.length === 0) return;
             
             // Update Backend
-            const token = localStorage.getItem('authToken');
             fetch(WEB_APP_URL, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'markRead', store: currentStore, timestamp: Date.now() })
             });
             
@@ -1579,13 +1456,9 @@ if (type === 'branch') {
                 }
 
                 try {
-                    const token = localStorage.getItem('authToken');
                     const response = await fetch(WEB_APP_URL, {
                         method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             action: 'bulkZeroInventory',
                             store: currentStore,
@@ -1788,10 +1661,7 @@ if (type === 'branch') {
                 // Fetch vendor from the main inventory API as a reliable fallback
                 let fetchedVendor = 'No Vendor';
                 try {
-                    const token = localStorage.getItem('authToken');
-                    const webRes = await fetch(`${WEB_APP_URL}?action=searchProducts&query=${encodeURIComponent(sku)}&sortKey=CREATED_AT&reverse=true`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const webRes = await fetch(`${WEB_APP_URL}?action=searchProducts&query=${encodeURIComponent(sku)}&sortKey=CREATED_AT&reverse=true`);
                     const webData = await webRes.json();
                     if (webData.status === 'success' && webData.products && webData.products.length > 0) {
                         const matchedProd = webData.products.find(p => p.variants && p.variants.some(v => v.sku === sku));
