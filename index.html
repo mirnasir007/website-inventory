@@ -2063,6 +2063,22 @@ if (type === 'branch') {
                     const mrp = res.mrp || 0;
                     let grandTotalStock = 0;
                     
+                    // --- SECURITY: AUTO ADD API KEY TO ALL BACKEND REQUESTS ---
+        const API_KEY = "pff_secure_pass_by_nasir_61983987654";
+        const originalFetch = window.fetch;
+        window.fetch = async function() {
+            let [resource, config] = arguments;
+            if (typeof resource === 'string' && resource.includes('inventory-backend-rwfi.onrender.com')) {
+                config = config || {};
+                config.headers = config.headers || {};
+                config.headers['x-api-key'] = API_KEY;
+            }
+            const response = await originalFetch(resource, config);
+            if (response.status === 401) {
+                logout();
+            }
+            return response;
+        };
                     // Filter stores based on current user
                     let storesToShow = globalStockStores;
                     if (currentStore !== 'admin') {
@@ -2154,8 +2170,11 @@ if (type === 'branch') {
                 });
                 const data = await response.json();
                 if (data.status === 'success') {
-                    alert("Password changed successfully! Please login again.");
-                    logout();
+                    closeChangePasswordModal();
+                    showCustomAlert("Password changed successfully! Logging out...");
+                    setTimeout(() => {
+                        logout();
+                    }, 2000);
                 } else {
                     err.innerText = data.message || "Failed to change password";
                     err.classList.remove('hidden');
