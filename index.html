@@ -159,7 +159,15 @@
                             <div class="flex items-center justify-end gap-1 text-green-700 font-bold text-sm uppercase tracking-wide">
                                 <i class="fa-solid fa-store text-xs"></i> <span id="displayStoreName">...</span>
                             </div>
-                            <button onclick="logout()" class="text-[10px] text-red-500 font-bold hover:underline mt-0.5">LOGOUT <i class="fa-solid fa-right-from-bracket ml-0.5"></i></button>
+                            <button onclick="logout()" class="text-[10px] text-red-500 font-bold hover:underline mt-0.5 w-full text-right">LOGOUT <i class="fa-solid fa-right-from-bracket ml-0.5"></i></button>
+                        </div>
+                        <div class="relative ml-2 flex items-center border-l pl-3 border-gray-200">
+                            <button onclick="toggleSettingsMenu()" class="text-gray-400 hover:text-gray-700 transition">
+                                <i class="fa-solid fa-ellipsis-vertical text-lg px-2 py-1"></i>
+                            </button>
+                            <div id="settingsDropdown" class="absolute right-0 top-full mt-2 w-40 bg-white border border-gray-200 rounded-md shadow-lg hidden z-[100]">
+                                <button onclick="openChangePasswordModal()" class="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 rounded-md"><i class="fa-solid fa-key mr-2"></i>Change Password</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -413,17 +421,40 @@
     </div>
 
     <div id="globalStockModal" class="fixed inset-0 z-[300] bg-black/60 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden">
-            <div class="p-4 border-b bg-gray-100 flex justify-between items-center">
-                <h3 id="globalStockTitle" class="font-bold text-gray-800 text-sm">Global Stock</h3>
-                <button onclick="closeGlobalStockPopup()" class="text-gray-500 hover:text-red-500 transition-colors">
-                    <i class="fa-solid fa-times text-lg"></i>
-                </button>
-            </div>
-            <div id="globalStockContent" class="p-4 bg-white">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden">
+                <div class="p-4 border-b bg-gray-100 flex justify-between items-center">
+                    <h3 id="globalStockTitle" class="font-bold text-gray-800 text-sm">Global Stock</h3>
+                    <button onclick="closeGlobalStockPopup()" class="text-gray-500 hover:text-red-500 transition-colors">
+                        <i class="fa-solid fa-times text-lg"></i>
+                    </button>
+                </div>
+                <div id="globalStockContent" class="p-4 bg-white">
+                </div>
             </div>
         </div>
-    </div>
+
+        <div id="changePasswordModal" class="fixed inset-0 z-[350] bg-black/70 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+                <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+                    <h3 class="font-bold text-gray-800"><i class="fa-solid fa-key mr-2 text-blue-500"></i>Change Password</h3>
+                    <button onclick="closeChangePasswordModal()" class="text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-times text-lg"></i></button>
+                </div>
+                <div class="p-5 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Old Password</label>
+                        <input type="password" id="oldPasswordInput" class="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 focus:bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">New Password</label>
+                        <input type="password" id="newPasswordInput" class="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 focus:bg-white">
+                    </div>
+                    <p id="changePassError" class="text-red-500 text-xs hidden text-center font-semibold bg-red-50 p-2 rounded"></p>
+                    <button id="submitChangePassBtn" onclick="submitChangePassword()" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-3 rounded-md transition-colors flex justify-center items-center gap-2">
+                        Change
+                    </button>
+                </div>
+            </div>
+        </div>
 
     <script>
         const GLOBAL_STOCK_URL = "https://global-stock-backend2.onrender.com/api";
@@ -463,12 +494,16 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedStore = localStorage.getItem('storeUser');
-            if (savedStore) {
+            const savedPass = localStorage.getItem('storePass');
+            if (savedStore && savedPass) {
                 currentStore = savedStore;
                 document.getElementById('displayStoreName').innerText = currentStore;
                 document.getElementById('loginOverlay').style.display = 'none';
                 loadInitialData(); 
                 syncPosUser();
+            } else {
+                localStorage.removeItem('storeUser');
+                localStorage.removeItem('storePass');
             }
 
             // POS Dates init
@@ -508,6 +543,7 @@
                 const data = await response.json();
                 if (data.status === 'success') {
                     localStorage.setItem('storeUser', selectedStore);
+                    localStorage.setItem('storePass', password);
                     currentStore = selectedStore;
                     document.getElementById('displayStoreName').innerText = currentStore;
                     document.getElementById('loginOverlay').style.display = 'none';
@@ -523,7 +559,7 @@
             }
         }
 
-        function logout() { localStorage.removeItem('storeUser'); location.reload(); }
+        function logout() { localStorage.removeItem('storeUser'); localStorage.removeItem('storePass'); location.reload(); }
 
         // --- VIEW TOGGLE LOGIC ---
         function openPosSyncView() {
@@ -672,6 +708,7 @@
                         if (type === 'branch') payload.targetBranch = specificStore;
                         if (type === 'reset_all') payload.targetBranch = 'reset_all';
 
+                        payload.auth = localStorage.getItem('storePass');
                         return fetch(WEB_APP_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -747,7 +784,8 @@ if (type === 'branch') {
         }
 
         async function fetchData() {
-            const response = await fetch(`${WEB_APP_URL}?action=getInitialData&store=${currentStore}`);
+            const authPass = localStorage.getItem('storePass') || '';
+            const response = await fetch(`${WEB_APP_URL}?action=getInitialData&store=${currentStore}&auth=${encodeURIComponent(authPass)}`);
             const data = await response.json();
             if(data.status === 'success') {
                 collectionsList = data.collections.sort((a, b) => a.title.localeCompare(b.title));
@@ -760,7 +798,8 @@ if (type === 'branch') {
 
         async function fetchNotificationsOnly() {
             try {
-                const response = await fetch(`${WEB_APP_URL}?action=getInitialData&store=${currentStore}`);
+                const authPass = localStorage.getItem('storePass') || '';
+                const response = await fetch(`${WEB_APP_URL}?action=getInitialData&store=${currentStore}&auth=${encodeURIComponent(authPass)}`);
                 const data = await response.json();
                 if(data.status === 'success' && data.notifications) {
                     handleNotifications(data.notifications, data.readData);
@@ -845,7 +884,7 @@ if (type === 'branch') {
                         fetch(WEB_APP_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ action: 'markSingleRead', store: currentStore, notifId: notifId })
+                            body: JSON.stringify({ action: 'markSingleRead', store: currentStore, notifId: notifId, auth: localStorage.getItem('storePass') })
                         });
                         
                         // Hide/remove from list after click
@@ -889,7 +928,8 @@ if (type === 'branch') {
                 if (sortValue === 'STATUS_ACTIVE') sortValue = 'CREATED_AT:true';
 
                 const [sortKey, reverse] = sortValue.split(':');
-                let url = `${WEB_APP_URL}?action=searchProducts`;
+                const authPass = localStorage.getItem('storePass') || '';
+                let url = `${WEB_APP_URL}?action=searchProducts&store=${currentStore}&auth=${encodeURIComponent(authPass)}`;
                 if(query) url += `&query=${encodeURIComponent(query)}`;
                 if(collectionId) url += `&collectionId=${encodeURIComponent(collectionId)}`;
                 if(cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
@@ -1357,7 +1397,7 @@ if (type === 'branch') {
             fetch(WEB_APP_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'markRead', store: currentStore, timestamp: Date.now() })
+                body: JSON.stringify({ action: 'markRead', store: currentStore, timestamp: Date.now(), auth: localStorage.getItem('storePass') })
             });
             
             // Backend clear hoye gele local storage er memory delete kore deya holo
@@ -1463,7 +1503,8 @@ if (type === 'branch') {
                             action: 'bulkZeroInventory',
                             store: currentStore,
                             targetLocation: selectedTarget,
-                            items: itemsToUpdate
+                            items: itemsToUpdate,
+                            auth: localStorage.getItem('storePass')
                         })
                     });
                     
@@ -2058,10 +2099,74 @@ if (type === 'branch') {
                     
                     content.innerHTML = html;
                 } else {
-                    content.innerHTML = '<p class="text-center text-red-500 text-sm font-bold py-4">No stock data found for this SKU.</p>';
+                    content.innerHTML = '<p class="text-center text-red-500 text-sm font-bold py-4">Server Error! Failed to fetch data.</p>';
                 }
             } catch (error) {
                 content.innerHTML = '<p class="text-center text-red-500 text-sm font-bold py-4">Server Error! Failed to fetch data.</p>';
+            }
+        }
+
+        function toggleSettingsMenu() {
+            document.getElementById('settingsDropdown').classList.toggle('hidden');
+        }
+        
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('settingsDropdown');
+            const btn = menu?.previousElementSibling;
+            if (menu && !menu.contains(e.target) && btn && !btn.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+        
+        function openChangePasswordModal() {
+            document.getElementById('settingsDropdown').classList.add('hidden');
+            document.getElementById('oldPasswordInput').value = '';
+            document.getElementById('newPasswordInput').value = '';
+            document.getElementById('changePassError').classList.add('hidden');
+            document.getElementById('changePasswordModal').classList.remove('hidden');
+        }
+        
+        function closeChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.add('hidden');
+        }
+        
+        async function submitChangePassword() {
+            const oldPass = document.getElementById('oldPasswordInput').value;
+            const newPass = document.getElementById('newPasswordInput').value;
+            const btn = document.getElementById('submitChangePassBtn');
+            const err = document.getElementById('changePassError');
+
+            if(!oldPass || !newPass) {
+                err.innerText = "Please fill all fields";
+                err.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
+            err.classList.add('hidden');
+
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'changePassword', store: currentStore, oldPassword: oldPass, newPassword: newPass, auth: localStorage.getItem('storePass') })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    alert("Password changed successfully! Please login again.");
+                    logout();
+                } else {
+                    err.innerText = data.message || "Failed to change password";
+                    err.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.innerHTML = "Change";
+                }
+            } catch (error) {
+                err.innerText = "Network error";
+                err.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerHTML = "Change";
             }
         }
 
