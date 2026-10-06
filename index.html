@@ -466,6 +466,8 @@
         let hasMoreProducts = false;
         let selectedCollectionId = "";
         let notificationInterval = null;
+        let currentReadData = { lastRead: 0, reads: [] };
+        let sseEventSource = null;
 
         // POS Variables
         let currentUser = 'admin'; 
@@ -768,9 +770,7 @@ if (type === 'branch') {
             toggleLoading(true, "Loading...");
             try {
                 await fetchData();
-                if (notificationInterval) clearInterval(notificationInterval);
-                // Changed from 30s to 3 mins (180000ms) to reduce excessive API requests
-                notificationInterval = setInterval(fetchNotificationsOnly, 180000); 
+                initSSE();
             } catch (e) { console.error(e); toggleLoading(false); }
         }
 
@@ -780,28 +780,40 @@ if (type === 'branch') {
             if(data.status === 'success') {
                 collectionsList = data.collections.sort((a, b) => a.title.localeCompare(b.title));
                 populateCustomDropdown(collectionsList);
-                handleNotifications(data.notifications, data.readData);
+                currentReadData = data.readData || { lastRead: 0, reads: [] };
+                handleNotifications(data.notifications, currentReadData);
                 document.getElementById('initialState').classList.remove('hidden');
                 document.getElementById('loadingState').classList.add('hidden');
             }
         }
 
-        async function fetchNotificationsOnly() {
-            try {
-                const response = await fetch(`${WEB_APP_URL}?action=getInitialData&store=${currentStore}`);
-                const data = await response.json();
-                if(data.status === 'success' && data.notifications) {
-                    handleNotifications(data.notifications, data.readData);
-                }
-            } catch(e) {}
+        function initSSE() {
+            if (sseEventSource) sseEventSource.close();
+            sseEventSource = new EventSource(`${WEB_APP_URL.replace('/api', '/api/stream')}`);
+            sseEventSource.onmessage = function(event) {
+                try {
+                    const latestNotifications = JSON.parse(event.data);
+                    handleNotifications(latestNotifications, currentReadData);
+                } catch(e) {}
+            };
+            sseEventSource.onerror = function() {
+                sseEventSource.close();
+                setTimeout(initSSE, 5000);
+            };
         }
 
         function handleNotifications(notifications, readData = { lastRead: 0, reads: [] }) {
+            if (currentStore !== 'admin') {
+                notifications = notifications.filter(notif => {
+                    if (notif.stores && notif.stores.length === 1 && notif.stores[0] === currentStore) return false;
+                    return true;
+                });
+            }
+
             const bellContainer = document.getElementById('adminBellContainer');
             const list = document.getElementById('adminNotificationList');
             const dot = document.getElementById('adminBellDot');
             
-            // Filter Unread notifications: Must be newer than Backend Time AND not in single reads array
             let unreadNotifications = notifications.filter(notif => {
                 const notifTime = new Date(notif.time).getTime();
                 return notifTime > readData.lastRead && !readData.reads.includes(notifTime.toString());
@@ -850,9 +862,9 @@ if (type === 'branch') {
                         }
                     } else {
                         if (isSoldOut) {
-                            displayMsg = displayMsg.replace('updated Sold Out', 'updated Sold Out SKU:');
+                            displayMsg = displayMsg.replace('Update Sold Out', 'Update Sold Out SKU :');
                         } else {
-                            displayMsg = displayMsg.replace('updated', 'updated SKU:');
+                            displayMsg = displayMsg.replace('Update', 'Update SKU :');
                         }
                     }
 
@@ -869,14 +881,17 @@ if (type === 'branch') {
                         <div class="pr-3"><p class="text-xs ${textClass} leading-snug">${displayMsg}</p><p class="text-[10px] text-blue-600 mt-1 font-mono font-semibold">New • ${new Date(notif.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p></div>`;
                     
                     div.onclick = () => { 
-                        // Send single read to backend
+                        if (!currentReadData.reads.includes(notifId)) {
+                            currentReadData.reads.push(notifId);
+                            if (currentReadData.reads.length > 50) currentReadData.reads.shift();
+                        }
+
                         fetch(WEB_APP_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ action: 'markSingleRead', store: currentStore, notifId: notifId })
                         });
                         
-                        // Hide/remove from list after click
                         div.style.opacity = '0';
                         setTimeout(() => {
                             div.remove();
@@ -1375,20 +1390,22 @@ if (type === 'branch') {
         }
 
         function markAllNotificationsRead() {
-            if (currentStore !== 'admin') return; // Shudhu admin er jonno kaj korbe
+            if (currentStore !== 'admin') return;
             
             const list = document.getElementById('adminNotificationList');
             const unreadElements = list.querySelectorAll('.notif-item');
             if (unreadElements.length === 0) return;
             
-            // Update Backend
+            const nowTimestamp = Date.now();
+            currentReadData.lastRead = nowTimestamp;
+            currentReadData.reads = [];
+
             fetch(WEB_APP_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'markRead', store: currentStore, timestamp: Date.now() })
+                body: JSON.stringify({ action: 'markRead', store: currentStore, timestamp: nowTimestamp })
             });
             
-            // Backend clear hoye gele local storage er memory delete kore deya holo
             localStorage.removeItem('readNotifs_' + currentStore);
             
             // Clear UI
