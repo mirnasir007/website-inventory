@@ -532,12 +532,16 @@
             try {
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
                     body: JSON.stringify({ action: 'login', store: selectedStore, password: password })
                 });
                 const data = await response.json();
                 if (data.status === 'success') {
                     localStorage.setItem('storeUser', selectedStore);
+                    localStorage.setItem('authToken', data.token);
                     currentStore = selectedStore;
                     document.getElementById('displayStoreName').innerText = currentStore;
                     document.getElementById('loginOverlay').style.display = 'none';
@@ -553,7 +557,7 @@
             }
         }
 
-        function logout() { localStorage.removeItem('storeUser'); location.reload(); }
+        function logout() { localStorage.removeItem('storeUser'); localStorage.removeItem('authToken'); location.reload(); }
 
         // --- VIEW TOGGLE LOGIC ---
         function openPosSyncView() {
@@ -704,7 +708,10 @@
 
                         return fetch(WEB_APP_URL, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                            },
                             body: JSON.stringify(payload)
                         }).then(res => {
                             if (!res.ok) throw new Error("Network/Server Error: " + res.status);
@@ -775,7 +782,9 @@ if (type === 'branch') {
         }
 
         async function fetchData() {
-            const response = await fetch(`${WEB_APP_URL}?action=getInitialData&store=${currentStore}`);
+            const response = await fetch(`${WEB_APP_URL}?action=getInitialData&store=${currentStore}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+            });
             const data = await response.json();
             if(data.status === 'success') {
                 collectionsList = data.collections.sort((a, b) => a.title.localeCompare(b.title));
@@ -789,7 +798,8 @@ if (type === 'branch') {
 
         function initSSE() {
             if (sseEventSource) sseEventSource.close();
-            sseEventSource = new EventSource(`${WEB_APP_URL.replace('/api', '/api/stream')}`);
+            const token = localStorage.getItem('authToken');
+            sseEventSource = new EventSource(`${WEB_APP_URL.replace('/api', '/api/stream')}?token=${token}`);
             sseEventSource.onmessage = function(event) {
                 try {
                     const latestNotifications = JSON.parse(event.data);
@@ -888,7 +898,10 @@ if (type === 'branch') {
 
                         fetch(WEB_APP_URL, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                            },
                             body: JSON.stringify({ action: 'markSingleRead', store: currentStore, notifId: notifId })
                         });
                         
@@ -938,7 +951,9 @@ if (type === 'branch') {
                 if(cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
                 url += `&sortKey=${sortKey}&reverse=${reverse}`;
 
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+                });
                 const data = await response.json();
 
                 if(data.status === 'success') {
@@ -1402,7 +1417,10 @@ if (type === 'branch') {
 
             fetch(WEB_APP_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
                 body: JSON.stringify({ action: 'markRead', store: currentStore, timestamp: nowTimestamp })
             });
             
@@ -1503,7 +1521,10 @@ if (type === 'branch') {
                 try {
                     const response = await fetch(WEB_APP_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        },
                         body: JSON.stringify({
                             action: 'bulkZeroInventory',
                             store: currentStore,
@@ -1706,7 +1727,9 @@ if (type === 'branch') {
                 // Fetch vendor from the main inventory API as a reliable fallback
                 let fetchedVendor = 'No Vendor';
                 try {
-                    const webRes = await fetch(`${WEB_APP_URL}?action=searchProducts&query=${encodeURIComponent(sku)}&sortKey=CREATED_AT&reverse=true`);
+                    const webRes = await fetch(`${WEB_APP_URL}?action=searchProducts&query=${encodeURIComponent(sku)}&sortKey=CREATED_AT&reverse=true`, {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+                    });
                     const webData = await webRes.json();
                     if (webData.status === 'success' && webData.products && webData.products.length > 0) {
                         const matchedProd = webData.products.find(p => p.variants && p.variants.some(v => v.sku === sku));
@@ -2152,7 +2175,10 @@ if (type === 'branch') {
             try {
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
                     body: JSON.stringify({ 
                         action: 'changePassword', 
                         store: currentStore, 
