@@ -552,8 +552,11 @@
                     btn.disabled = false; btn.innerHTML = `<span>Access Dashboard</span>`;
                 }
             } catch (error) {
-                alert("Login Error: " + error.message);
-                btn.disabled = false; btn.innerHTML = `<span>Access Dashboard</span>`;
+                const errorEl = document.getElementById('loginError');
+                errorEl.innerText = "Login Error";
+                errorEl.classList.remove('hidden');
+                btn.disabled = false; 
+                btn.innerHTML = `<span>Access Dashboard</span>`;
             }
         }
 
