@@ -135,36 +135,41 @@
                             <h1 class="font-bold text-base leading-tight text-gray-800">Store Manager</h1>
                             <p class="text-[10px] text-gray-500">Shopify Sync</p>
                         </div>
-                        <button onclick="openPosSyncView()" class="ml-4 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-md transition shadow flex items-center gap-1">
+                        <button onclick="openPosSyncView()" class="hidden sm:flex ml-4 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-md transition shadow items-center gap-1 whitespace-nowrap">
                             <i class="fa-solid fa-rotate"></i> POS Sync
                         </button>
                     </div>
-                    <div class="text-right flex items-center gap-3">
-                        <div id="adminBellContainer" class="notification-bell hidden">
-                            <i class="fa-solid fa-bell text-gray-600 text-lg hover:text-blue-600 transition-colors" onclick="toggleAdminNotifications()"></i>
-                            <span id="adminBellDot" class="notification-dot"></span>
-                            <div id="adminNotificationPopup" class="notification-popup">
-                                <div class="p-3 border-b border-gray-100 font-bold text-xs text-gray-500 bg-gray-50 flex justify-between items-center">
-                                    <span>RECENT ACTIVITY</span>
-                                    <button id="markAllReadBtn" onclick="markAllNotificationsRead()" class="hidden text-[9px] bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded transition-colors uppercase tracking-wider cursor-pointer shadow-sm">
-                                        <i class="fa-solid fa-check-double mr-1"></i> Read All
-                                    </button>
+                    <div class="text-right flex flex-col items-end gap-1">
+                        <div class="flex items-center gap-3">
+                            <div id="adminBellContainer" class="notification-bell hidden">
+                                <i class="fa-solid fa-bell text-gray-600 text-lg hover:text-blue-600 transition-colors" onclick="toggleAdminNotifications()"></i>
+                                <span id="adminBellDot" class="notification-dot"></span>
+                                <div id="adminNotificationPopup" class="notification-popup">
+                                    <div class="p-3 border-b border-gray-100 font-bold text-xs text-gray-500 bg-gray-50 flex justify-between items-center">
+                                        <span>RECENT ACTIVITY</span>
+                                        <button id="markAllReadBtn" onclick="markAllNotificationsRead()" class="hidden text-[9px] bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded transition-colors uppercase tracking-wider cursor-pointer shadow-sm">
+                                            <i class="fa-solid fa-check-double mr-1"></i> Read All
+                                        </button>
+                                    </div>
+                                    <div id="adminNotificationList" class="divide-y divide-gray-100">
+                                        <div class="p-4 text-center text-xs text-gray-400">No recent updates</div>
+                                    </div>
                                 </div>
-                                <div id="adminNotificationList" class="divide-y divide-gray-100">
-                                    <div class="p-4 text-center text-xs text-gray-400">No recent updates</div>
+                            </div>
+                            <div class="relative">
+                                <div class="flex items-center justify-end gap-2 text-green-700 font-bold text-sm uppercase tracking-wide">
+                                    <i class="fa-solid fa-store text-xs"></i> <span id="displayStoreName">...</span>
+                                    <i class="fa-solid fa-ellipsis-vertical text-gray-500 cursor-pointer px-1 hover:text-black" onclick="toggleSettingsMenu()"></i>
+                                </div>
+                                <div id="settingsMenu" class="hidden absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
+                                    <button onclick="openChangePasswordModal()" class="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 font-bold"><i class="fa-solid fa-key mr-2"></i> Changes Password</button>
+                                    <button onclick="logout()" class="w-full text-left px-4 py-2 text-xs text-red-500 hover:bg-gray-100 font-bold"><i class="fa-solid fa-right-from-bracket mr-2"></i> LOGOUT</button>
                                 </div>
                             </div>
                         </div>
-                        <div class="relative">
-                            <div class="flex items-center justify-end gap-2 text-green-700 font-bold text-sm uppercase tracking-wide">
-                                <i class="fa-solid fa-store text-xs"></i> <span id="displayStoreName">...</span>
-                                <i class="fa-solid fa-ellipsis-vertical text-gray-500 cursor-pointer px-1 hover:text-black" onclick="toggleSettingsMenu()"></i>
-                            </div>
-                            <div id="settingsMenu" class="hidden absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
-                                <button onclick="openChangePasswordModal()" class="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 font-bold"><i class="fa-solid fa-key mr-2"></i> Changes Password</button>
-                                <button onclick="logout()" class="w-full text-left px-4 py-2 text-xs text-red-500 hover:bg-gray-100 font-bold"><i class="fa-solid fa-right-from-bracket mr-2"></i> LOGOUT</button>
-                            </div>
-                        </div>
+                        <button onclick="openPosSyncView()" class="sm:hidden bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-md transition shadow flex items-center gap-1 whitespace-nowrap">
+                            <i class="fa-solid fa-rotate"></i> POS Sync
+                        </button>
                     </div>
                 </div>
                 
@@ -184,11 +189,12 @@
                     <button onclick="clearFilters()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center border border-gray-300 transition-colors" title="Reset"><i class="fa-solid fa-rotate-left text-xs"></i></button>
                     <div class="flex-1 min-w-0 flex gap-2 items-center">
                         <div class="relative flex-1 min-w-0">
-                            <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400 text-xs"></i>
-                            <input type="text" id="searchInput" placeholder="Search" class="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-[10px] font-medium focus:outline-none focus:border-green-500 uppercase" oninput="this.value = this.value.toUpperCase()">
+                            <i class="fa-solid fa-search hidden sm:block absolute left-3 top-3 text-gray-400 text-xs"></i>
+                            <input type="text" id="searchInput" placeholder="Search" class="w-full px-3 sm:pl-8 sm:pr-3 py-2.5 sm:py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs sm:text-[10px] font-medium focus:outline-none focus:border-green-500 uppercase" oninput="this.value = this.value.toUpperCase()">
                         </div>
-                        <button onclick="triggerSearchProcess()" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors flex-shrink-0 shadow-sm">
-                            Search
+                        <button onclick="triggerSearchProcess()" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex-shrink-0 shadow-sm flex items-center justify-center">
+                            <i class="fa-solid fa-search sm:hidden text-xs"></i>
+                            <span class="hidden sm:inline">Search</span>
                         </button>
                         <label class="hidden sm:flex items-center gap-1.5 cursor-pointer bg-white border border-gray-300 px-2.5 py-2 rounded-lg shadow-sm hover:bg-gray-50 flex-shrink-0 transition-colors" title="Auto-trim last 4 digits for Scanner">
                             <input type="checkbox" id="autoTrimCheck" class="w-3.5 h-3.5 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer">
