@@ -1,1056 +1,2224 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shopify Image Pro Downloader</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      padding: 0 20px 20px 20px;
-      background: #f0f2f5;
-      margin: 0;
-      color: #333;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Store Manager & POS Sync</title>
     
-    .sticky-header {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background: #f0f2f5;
-      padding: 20px 0 15px 0;
-      margin-bottom: 5px;
-    }
-
-    h2 {
-      margin-top: 0;
-      margin-bottom: 15px;
-    }
-
-    .header-controls {
-      background: white;
-      padding: 15px 20px;
-      border-radius: 12px;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-      display: flex;
-      flex-wrap: nowrap;
-      gap: 15px;
-      align-items: center;
-      justify-content: space-between;
-      overflow-x: auto;
-      margin-bottom: 10px;
-    }
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
     
-    .filter-group {
-      background: white;
-      padding: 15px 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      display: flex;
-      gap: 15px;
-      align-items: center;
-      margin-bottom: 15px;
-    }
+    <link rel="manifest" id="manifest-placeholder">
 
-    .input-group {
-      display: flex;
-      gap: 10px;
-      flex-grow: 1;
-      min-width: 250px;
-    }
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    input[type="text"] {
-      padding: 10px 12px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 14px;
-    }
-    .url-input { width: 100%; flex-grow: 1; }
-    .filter-input { width: 100%; max-width: 400px; }
-    .zip-name-input { width: 180px; flex-shrink: 0; }
-    
-    select {
-      padding: 10px 12px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 14px;
-      background: #fff;
-      cursor: pointer;
-    }
-    
-    button {
-      padding: 10px 18px;
-      cursor: pointer;
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-    .btn-primary { background: #007bff; color: white; }
-    .btn-primary:hover { background: #0056b3; }
-    .btn-success { background: #28a745; color: white; }
-    .btn-success:hover { background: #218838; }
-    .btn-success:disabled { background: #a5d6a7; cursor: not-allowed; }
-    .btn-outline { background: #fff; color: #007bff; border: 1px solid #007bff; padding: 6px 10px; font-size: 12px; margin-top: 8px;}
-    .btn-outline:hover { background: #e7f3ff; }
-    
-    .action-group {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-    .select-all-label {
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: #fff;
-      border: 1px solid #ddd;
-      padding: 8px 12px;
-      border-radius: 6px;
-    }
+    <style>
+        body { background-color: #f4f6f8; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        .retro-img-container { aspect-ratio: 3:2; overflow: hidden; background-color: #e2e8f0; cursor: pointer; position: relative; }
+        .retro-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+        .product-card:hover .retro-img { transform: scale(1.05); }
+        .retro-img-container::after { content: '\f00e'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 24px; opacity: 0; transition: opacity 0.3s ease; text-shadow: 0 2px 4px rgba(0,0,0,0.5); pointer-events: none; }
+        .retro-img-container:hover::after { opacity: 1; }
+        
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #16a34a; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; display: inline-block; vertical-align: middle; }
+        .loader-small { width: 14px; height: 14px; border-width: 2px; border-top-color: #000; }
+        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-slide-down { animation: slideDown 0.5s ease-out forwards; }
 
-    #status {
-      font-weight: 600;
-      margin-bottom: 10px;
-      padding: 10px;
-      border-radius: 6px;
-      background: #e9ecef;
-      display: inline-block;
-    }
+        .custom-select-wrapper { position: relative; width: 100%; }
+        .custom-select-trigger { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem; line-height: 1.25rem; white-space: nowrap; overflow: hidden; }
+        .custom-options { position: absolute; display: none; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 50; margin-top: 4px; }
+        .custom-options.open { display: block; }
+        .option { padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem; color: #4b5563; }
+        .option:hover { background-color: #f3f4f6; color: #111827; }
+        .option.selected { background-color: #eff6ff; color: #1d4ed8; font-weight: 600; }
+        .search-in-dropdown { padding: 0.5rem; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; background: white; z-index: 10; }
+        
+        .notification-bell { position: relative; cursor: pointer; }
+        .notification-dot { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%; display: none; }
+        .notification-popup { position: absolute; top: 100%; right: 0; width: 280px; background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); z-index: 100; margin-top: 8px; display: none; max-height: 300px; overflow-y: auto; text-align: left; }
+        .notification-popup.open { display: block; }
+        @media (max-width: 639px) {
+            .notification-popup { position: fixed; top: 55px; left: 50%; right: auto; transform: translateX(-50%); width: 92vw; max-width: 340px; }
+        }
 
-    .gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 25px;
-    }
-    .image-box {
-      background: #fff;
-      padding: 15px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      display: flex;
-      flex-direction: column;
-      position: relative;
-    }
-    .image-box img {
-      width: 100%;
-      height: 240px;
-      border-radius: 8px;
-      object-fit: contain;
-      background: #f8f9fa;
-      cursor: zoom-in;
-    }
-    
-    .product-info {
-      margin-top: 15px;
-      padding: 12px;
-      background: #f8f9fa;
-      border: 2px solid transparent;
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-    }
-    .product-info.selected {
-      background: #e7f3ff;
-      border-color: #007bff;
-    }
-    .product-details {
-      text-align: left;
-      width: 85%;
-    }
-    .product-title {
-      font-size: 14px;
-      font-weight: bold;
-      color: #222;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .product-meta {
-      font-size: 12px;
-      color: #6c757d;
-      margin-top: 4px;
-      margin-bottom: 4px;
-    }
-
-    /* Slider Modal styling */
-    .modal {
-      display: none;
-      position: fixed; 
-      z-index: 2000; 
-      left: 0; top: 0; width: 100%; height: 100%; 
-      background-color: rgba(0,0,0,0.9); 
-      backdrop-filter: blur(8px);
-    }
-    .modal-content {
-      margin: auto;
-      display: block;
-      max-width: 85%;
-      max-height: 85vh;
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-    }
-    .close-modal {
-      position: absolute;
-      top: 20px; right: 35px;
-      color: white; font-size: 40px; cursor: pointer;
-      z-index: 2005;
-    }
-    .nav-arrow {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      color: white;
-      font-size: 50px;
-      font-weight: bold;
-      cursor: pointer;
-      padding: 20px;
-      user-select: none;
-      z-index: 2005;
-      transition: 0.3s;
-    }
-    .nav-arrow:hover { color: #bbb; }
-    .left-arrow { left: 2%; }
-    .right-arrow { right: 2%; }
-    
-    #modalImageCounter {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: white;
-      font-size: 16px;
-      font-weight: bold;
-    }
-
-    /* Specific Image Selector Modal */
-    .selector-content {
-      background: white;
-      margin: 5% auto;
-      padding: 20px;
-      width: 80%;
-      max-width: 800px;
-      border-radius: 12px;
-      max-height: 80vh;
-      overflow-y: auto;
-      position: relative;
-    }
-    .selector-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 10px;
-    }
-    .selector-gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 15px;
-    }
-    .selector-item {
-      position: relative;
-      cursor: pointer;
-      border: 2px solid transparent;
-      border-radius: 8px;
-      padding: 5px;
-    }
-    .selector-item.selected {
-      border-color: #28a745;
-      background: #e8f5e9;
-    }
-    .selector-item img {
-      width: 100%;
-      height: 120px;
-      object-fit: contain;
-      border-radius: 6px;
-    }
-    .selector-item input {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      transform: scale(1.5);
-      cursor: pointer;
-    }
-
-    .load-more-container { text-align: center; margin: 30px 0; }
-    #loadMoreBtn { padding: 12px 30px; font-size: 16px; box-shadow: 0 4px 12px rgba(0,123,255,0.3); }
-  </style>
+        .invoice-card { transition: all 0.3s ease; }
+    </style>
 </head>
-<body>
+<body class="text-slate-800 relative">
 
-  <div class="sticky-header">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-      <div style="display: flex; align-items: center; gap: 15px;">
-        <h2 style="margin: 0;">Shopify Product Downloader</h2>
-        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: bold; background: #e7f3ff; color: #007bff; padding: 5px 10px; border-radius: 6px; border: 1px solid #007bff; font-size: 14px;">
-          <input type="checkbox" id="myStoreCheck" style="cursor: pointer; transform: scale(1.2);">
-          My Store
-        </label>
-      </div>
-      <div id="status" style="margin-bottom: 0;">Ready</div>
-    </div>
-
-    <div class="header-controls">
-      <div class="input-group">
-  <input type="text" id="collectionUrl" class="url-input" placeholder="" onkeypress="if(event.key === 'Enter') loadProducts()">
-  <button class="btn-primary" onclick="loadProducts()">Fetch Products</button>
-</div>
-      
-      <div class="action-group" id="actionGroup" style="display: none;">
-        <select id="formatSelect">
-          <option value="original">Format: Original</option>
-          <option value="png">Format: PNG</option>
-          <option value="jpg">Format: JPG</option>
-          <option value="webp">Format: WEBP</option>
-        </select>
-        <input type="text" id="zipFileName" class="zip-name-input" placeholder="Custom ZIP Name">
-        <label class="select-all-label">
-          <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)" checked>
-          Select All
-        </label>
-        <button class="btn-success" id="downloadSelectedBtn" onclick="downloadSelectedAsZip()">Download Selected</button>
-      </div>
-    </div>
-    
-    <div class="filter-group" id="filterGroup" style="display: none;">
-      <strong>Filter:</strong>
-      <input type="text" id="filterGeneral" class="filter-input" placeholder="Search..." oninput="applyFilters()">
-      
-      <strong style="margin-left: 15px;">Currency:</strong>
-      <select id="currencySelect" onchange="changeCurrency()">
-        <option value="original">Original</option>
-        <option value="usd">USD ($)</option>
-        <option value="bdt">BDT (৳)</option>
-        <option value="pkr">PKR (Rs)</option>
-        <option value="inr">INR (₹)</option>
-        <option value="eur">EUR (€)</option>
-        <option value="gbp">GBP (£)</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="gallery" id="gallery"></div>
-  
-  <div class="load-more-container">
-    <button id="loadMoreBtn" class="btn-primary" style="display: none;" onclick="loadMoreProducts()">Load More Products</button>
-  </div>
-
-  <div id="imageModal" class="modal" onclick="closeModal()">
-    <span class="close-modal">&times;</span>
-    <span class="nav-arrow left-arrow" onclick="navModal(-1, event)">&#10094;</span>
-    <img class="modal-content" id="modalImage" onclick="event.stopPropagation()">
-    <span class="nav-arrow right-arrow" onclick="navModal(1, event)">&#10095;</span>
-    <div id="modalImageCounter"></div>
-  </div>
-
-  <div id="imageSelectorModal" class="modal" onclick="closeSelectorModal()">
-    <div class="selector-content" onclick="event.stopPropagation()">
-      <div class="selector-header">
-        <h3 style="margin:0;">Select Specific Images</h3>
-        <button class="btn-primary" onclick="closeSelectorModal()">Save Selection</button>
-      </div>
-      <div class="selector-gallery" id="selectorGallery"></div>
-    </div>
-  </div>
-
-  <script>
-    let globalProductsData = [];
-    let currentPage = 1; 
-    let currentFetchMode = "collection"; 
-    let lastBackendCursor = null; 
-    let hasMoreBackendProducts = false;
-    
-    // Global Memory for Persistent Selection
-    let globalSelectedProducts = new Map();
-
-    // Live Currency Variables
-    let exchangeRates = null;
-    let activeCurrency = "original";
-    let baseStoreCurrency = "usd";
-    
-    // Slider variables
-    let currentSliderProductIndex = -1;
-    let currentSliderImageIndex = -1;
-    
-    // Specific Selector variable
-    let currentSelectingProductIndex = -1;
-
-    const cleanFileName = (name) => {
-      if (!name) return "Untitled";
-      return name.replace(/[<>:"/\\|?*]+/g, '').trim();
-    };
-
-    const getMasterImageUrl = (url) => url ? url.split("?")[0] : "";
-
-    // ========== SLIDER MODAL LOGIC ==========
-    function openModal(prodIdx, imgIdx) {
-      currentSliderProductIndex = prodIdx;
-      currentSliderImageIndex = imgIdx;
-      updateModalImage();
-      document.getElementById("imageModal").style.display = "block";
-    }
-
-    function closeModal() {
-      document.getElementById("imageModal").style.display = "none";
-    }
-
-    function updateModalImage() {
-      const prod = globalProductsData[currentSliderProductIndex];
-      if(!prod || !prod.images || prod.images.length === 0) return;
-      const imgUrl = getMasterImageUrl(prod.images[currentSliderImageIndex].src);
-      document.getElementById("modalImage").src = imgUrl;
-      document.getElementById("modalImageCounter").innerText = `Image ${currentSliderImageIndex + 1} of ${prod.images.length}`;
-    }
-
-    function navModal(direction, event) {
-      if(event) event.stopPropagation();
-      const prod = globalProductsData[currentSliderProductIndex];
-      if(!prod || !prod.images) return;
-      
-      currentSliderImageIndex += direction;
-      if (currentSliderImageIndex < 0) currentSliderImageIndex = prod.images.length - 1;
-      if (currentSliderImageIndex >= prod.images.length) currentSliderImageIndex = 0;
-      updateModalImage();
-    }
-
-    // Keyboard support for Slider
-    document.addEventListener('keydown', function(event) {
-      if (document.getElementById('imageModal').style.display === 'block') {
-        if (event.key === 'ArrowLeft') navModal(-1);
-        if (event.key === 'ArrowRight') navModal(1);
-        if (event.key === 'Escape') closeModal();
-      }
-    });
-
-    // ========== SPECIFIC IMAGE SELECTOR LOGIC ==========
-    function openSelectorModal(globalIndex, event) {
-      event.stopPropagation();
-      currentSelectingProductIndex = globalIndex;
-      const prod = globalProductsData[globalIndex];
-      const gallery = document.getElementById("selectorGallery");
-      gallery.innerHTML = "";
-      
-      if(prod.images) {
-        prod.images.forEach((img, idx) => {
-          const isSelected = prod.selectedImageIndices.includes(idx);
-          const thumb = getMasterImageUrl(img.src);
-          const div = document.createElement("div");
-          div.className = `selector-item ${isSelected ? 'selected' : ''}`;
-          div.onclick = () => toggleSpecificImage(idx, div);
-          div.innerHTML = `
-            <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSpecificImage(${idx}, this.parentElement)">
-            <img src="${thumb}">
-          `;
-          gallery.appendChild(div);
-        });
-      }
-      document.getElementById("imageSelectorModal").style.display = "block";
-    }
-
-    function closeSelectorModal() {
-      document.getElementById("imageSelectorModal").style.display = "none";
-      renderApp(); // re-render to update the image count badge
-    }
-
-    function toggleSpecificImage(imgIdx, itemDiv) {
-      const prod = globalProductsData[currentSelectingProductIndex];
-      const cb = itemDiv.querySelector('input');
-      
-      // Toggle logic
-      if(prod.selectedImageIndices.includes(imgIdx)) {
-        prod.selectedImageIndices = prod.selectedImageIndices.filter(i => i !== imgIdx);
-        itemDiv.classList.remove('selected');
-        cb.checked = false;
-      } else {
-        prod.selectedImageIndices.push(imgIdx);
-        itemDiv.classList.add('selected');
-        cb.checked = true;
-      }
-      
-      // Update the global map if this product is selected
-      if (globalSelectedProducts.has(prod.id)) {
-        globalSelectedProducts.set(prod.id, prod);
-      }
-    }
-
-
-    // ========== FETCH & PROCESS LOGIC ==========
-    async function fetchImageAsBlob(imageUrl, retries = 3) {
-      for (let i = 0; i < retries; i++) {
-        try {
-          const response = await fetch(imageUrl, { mode: 'cors' });
-          if (!response.ok) throw new Error("Fetch failed");
-          return await response.blob();
-        } catch (error) {
-          if (i === retries - 1) throw error;
-          await new Promise(res => setTimeout(res, 1000 * (i + 1))); 
-        }
-      }
-    }
-
-    async function convertImageBlob(blob, format) {
-      if (format === 'original') {
-        const ext = blob.type.split('/')[1]?.replace('jpeg', 'jpg') || 'png';
-        return { blob, ext };
-      }
-      const mimeType = format === 'jpg' ? 'image/jpeg' : `image/${format}`;
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        const url = URL.createObjectURL(blob);
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width; canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          if (format === 'jpg') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
-          ctx.drawImage(img, 0, 0);
-          canvas.toBlob((newBlob) => {
-            URL.revokeObjectURL(url);
-            if (newBlob) resolve({ blob: newBlob, ext: format });
-            else reject(new Error("Canvas conversion failed"));
-          }, mimeType, 0.95);
-        };
-        img.onerror = () => reject(new Error("Image processing failed"));
-        img.src = url;
-      });
-    }
-
-    function parseShopifyUrl(rawUrl) {
-      try {
-        const urlObj = new URL(rawUrl);
-        let baseUrl = urlObj.origin;
-        let mode = "collection";
-        let handleOrQuery = "";
-
-        if (urlObj.pathname.includes('/products/')) {
-          mode = "product";
-          handleOrQuery = urlObj.pathname.split('/products/')[1].split('/')[0];
-        } else if (urlObj.pathname.includes('/search') || urlObj.searchParams.has('q')) {
-          mode = "search";
-          handleOrQuery = urlObj.searchParams.get('q');
-        } else if (urlObj.pathname.includes('/collections/')) {
-          handleOrQuery = urlObj.pathname.split('/collections/')[1].split('/')[0];
-        }
-        return { baseUrl, mode, handleOrQuery };
-      } catch (e) { return null; }
-    }
-
-    async function fetchProductsData(page) {
-      const urlInput = document.getElementById("collectionUrl").value.trim();
-      const parsed = parseShopifyUrl(urlInput);
-      if (!parsed) throw new Error("Invalid URL format.");
-
-      currentFetchMode = parsed.mode;
-      const { baseUrl, mode, handleOrQuery } = parsed;
-
-      const isMyStoreChecked = document.getElementById("myStoreCheck")?.checked;
-      if (isMyStoreChecked) {
+    <script>
+        // Main Inventory Backend
         const WEB_APP_URL = "https://inventory-backend-rwfi.onrender.com/api";
-        const authToken = localStorage.getItem("authToken");
-        if (!authToken) {
-          throw new Error("My Store needs an active Store Manager login. The Shopify URL alone is not enough; open this page from the same Store Manager site where you are logged in.");
-        }
-        const authHeaders = { Authorization: `Bearer ${authToken}` };
-        let matchedCollectionId = null;
+        // POS Sync Backend
+        const API_URL = "https://pos-sync-app-backend.onrender.com/api";
         
-        if (mode === "collection" && handleOrQuery) {
-            const initRes = await fetch(`${WEB_APP_URL}?action=getInitialData`, {
-              headers: authHeaders
-            });
-            const initData = await initRes.json();
-            if (!initRes.ok || initData.status !== 'success') {
-              throw new Error(initData.message || "Failed to load My Store collections.");
-            }
-            if (initData.collections) {
-                const col = initData.collections.find(c => 
-                    c.id === handleOrQuery || 
-                    (c.handle && c.handle.toLowerCase() === handleOrQuery.toLowerCase()) ||
-                    (c.title && c.title.toLowerCase().replace(/\s+/g, '-').includes(handleOrQuery.toLowerCase()))
-                );
-                if (col) matchedCollectionId = col.id;
-            }
-        }
-
-        let allBackendProducts = [];
-        let currentCursor = (page > 1) ? lastBackendCursor : null;
-        let hasNext = true;
-
-        // Loop to fetch 250 products (5 batches of 50) without crashing the backend
-        while (allBackendProducts.length < 250 && hasNext) {
-            let url = `${WEB_APP_URL}?action=searchProducts&sortKey=CREATED_AT&reverse=true`;
-            if (matchedCollectionId) {
-                url += `&collectionId=${encodeURIComponent(matchedCollectionId)}`;
-            } else if (handleOrQuery) {
-                url += `&query=${encodeURIComponent(handleOrQuery)}`;
-            }
-            
-            if (currentCursor) {
-                url += `&cursor=${encodeURIComponent(currentCursor)}`;
-            }
-
-            const response = await fetch(url, { headers: authHeaders });
-            const data = await response.json();
-
-            if (response.ok && data.status === 'success') {
-                if (!data.products || data.products.length === 0) break;
-                
-                allBackendProducts = allBackendProducts.concat(data.products);
-                
-                if (currentCursor === data.pageInfo?.endCursor) break;
-                
-                currentCursor = data.pageInfo?.endCursor || null;
-                hasNext = data.pageInfo?.hasNextPage || false;
-                
-                document.getElementById("status").innerText = `Connecting to My Store... (${allBackendProducts.length} items loaded)`;
-            } else {
-                if (allBackendProducts.length === 0) {
-                  throw new Error(data.message || "Backend search failed.");
-                }
-                break;
-            }
-        }
-
-        lastBackendCursor = currentCursor;
-        hasMoreBackendProducts = hasNext;
-
-        return allBackendProducts.map(p => {
-            const rawImages = p.images;
-            const imageList = Array.isArray(rawImages)
-              ? rawImages
-              : Array.isArray(rawImages?.edges)
-                ? rawImages.edges.map(edge => edge.node)
-                : Array.isArray(rawImages?.nodes)
-                  ? rawImages.nodes
-                  : [];
-            const fallbackImage = p.image || p.featuredImage || p.featured_image;
-            const images = (imageList.length ? imageList : fallbackImage ? [fallbackImage] : [])
-              .map(image => {
-                  const src = typeof image === "string"
-                    ? image
-                    : image?.src || image?.url || image?.originalSrc || image?.original_src;
-                  return src ? { src } : null;
-              })
-              .filter(Boolean);
-
-            return {
-                id: p.id,
-                title: p.title,
-                vendor: p.vendor,
-                product_type: p.type || p.product_type,
-                status: p.status || p.publicationStatus || p.publication_status || "",
-                variants: p.variants || [],
-                images
+        window.addEventListener('DOMContentLoaded', () => {
+            const manifest = {
+                "name": "Store Manager",
+                "short_name": "Inventory",
+                "start_url": window.location.href,
+                "display": "standalone",
+                "background_color": "#ffffff",
+                "theme_color": "#16a34a",
+                "icons": [
+                    { "src": "logo.png", "sizes": "192x192", "type": "image/png" },
+                    { "src": "logo.png", "sizes": "512x512", "type": "image/png" }
+                ]
             };
+            const stringManifest = JSON.stringify(manifest);
+            const blob = new Blob([stringManifest], {type: 'application/json'});
+            const manifestURL = URL.createObjectURL(blob);
+            const linkTag = document.querySelector('#manifest-placeholder');
+            if (linkTag) { linkTag.setAttribute('href', manifestURL); }
         });
-      }
+    </script>
 
-      if (mode === "product") {
-        const res = await fetch(`${baseUrl}/products/${handleOrQuery}.json`);
-        if (!res.ok) throw new Error("Product not found.");
-        const data = await res.json();
-        return [data.product];
-      } 
-      else if (mode === "search") {
-        // Updated Search Logic with Fallback
-        let searchProducts = [];
-        try {
-          const suggestUrl = `${baseUrl}/search/suggest.json?q=${encodeURIComponent(handleOrQuery)}&resources[type]=product&resources[limit]=250`;
-          const res = await fetch(suggestUrl);
-          if (res.ok) {
-            const data = await res.json();
-            searchProducts = data.resources?.results?.products || [];
-          }
-        } catch(e) { console.warn("Suggest API failed, trying fallback..."); }
-        
-        // Fallback: If search fails or blocked, fetch all general products and filter locally
-        if(searchProducts.length === 0) {
-            const fallbackRes = await fetch(`${baseUrl}/products.json?limit=250`);
-            if(!fallbackRes.ok) throw new Error("Search failed and Fallback blocked.");
-            const fallbackData = await fallbackRes.json();
-            const keyword = handleOrQuery.toLowerCase();
-            return fallbackData.products.filter(p => 
-                p.title.toLowerCase().includes(keyword) || 
-                (p.vendor && p.vendor.toLowerCase().includes(keyword)) ||
-                (p.product_type && p.product_type.toLowerCase().includes(keyword)) ||
-                (p.tags && p.tags.some(t => t.toLowerCase().includes(keyword))) ||
-                (p.variants && p.variants.length > 0 && p.variants[0].sku && p.variants[0].sku.toLowerCase().includes(keyword))
-            );
-        } else {
-            const fetchPromises = searchProducts.map(sp => 
-                fetch(`${baseUrl}/products/${sp.handle}.json`).then(r => r.ok ? r.json() : null)
-            );
-            const results = await Promise.all(fetchPromises);
-            return results.filter(r => r && r.product).map(r => r.product);
-        }
-      } 
-      else {
-        const jsonUrl = handleOrQuery 
-          ? `${baseUrl}/collections/${handleOrQuery}/products.json?limit=250&page=${page}`
-          : `${urlInput.replace(/\/$/, "")}/products.json?limit=250&page=${page}`;
-        const response = await fetch(jsonUrl);
-        if (!response.ok) throw new Error("Could not fetch product data.");
-        const data = await response.json();
-        return data.products;
-      }
-    }
-    
-    // Initialize specific variables for each fetched product
-    function initializeProductData(products) {
-        return products.map(p => {
-            if(p.images) {
-                // By default select all images
-                p.selectedImageIndices = p.images.map((_, idx) => idx);
-            } else {
-                p.selectedImageIndices = [];
-            }
-            return p;
-        });
-    }
-
-    async function loadProducts() {
-      const urlInput = document.getElementById("collectionUrl").value.trim();
-      const status = document.getElementById("status");
-      if (!urlInput) { status.innerText = "Error: URL is required."; return; }
-
-      currentPage = 1;
-      lastBackendCursor = null;
-      hasMoreBackendProducts = false;
-      globalProductsData = [];
-      globalSelectedProducts.clear(); // Eta purono link er kora selection clear korbe
-      document.getElementById("gallery").innerHTML = "";
-      updateDownloadButton(); // Eta button er count theke purono data reset korbe
-      document.getElementById("actionGroup").style.display = "none";
-      document.getElementById("filterGroup").style.display = "none";
-      document.getElementById("loadMoreBtn").style.display = "none";
-      document.getElementById("selectAllCheckbox").checked = true;
-      document.getElementById("filterGeneral").value = "";
-      
-      activeCurrency = "original";
-      document.getElementById("currencySelect").value = "original";
-
-      status.innerText = "Connecting to Shopify...";
-
-      try {
-        let products = await fetchProductsData(currentPage);
-        if (products.length === 0) {
-          status.innerText = "No products found for this link."; return;
-        }
-
-        globalProductsData = initializeProductData(products);
-        renderApp(); 
-        
-        status.innerText = `Loaded ${globalProductsData.length} products.`;
-        document.getElementById("actionGroup").style.display = "flex";
-        document.getElementById("filterGroup").style.display = "flex";
-
-        const isMyStoreChecked = document.getElementById("myStoreCheck")?.checked;
-        if (isMyStoreChecked) {
-          if (hasMoreBackendProducts) {
-            document.getElementById("loadMoreBtn").style.display = "inline-block";
-          }
-        } else if (currentFetchMode === "collection" && products.length === 250) {
-          document.getElementById("loadMoreBtn").style.display = "inline-block";
-        }
-      } catch (error) {
-        status.innerText = `Error: ${error.message || "Please check the URL and your connection."}`;
-        console.error(error);
-      }
-    }
-
-    async function loadMoreProducts() {
-      const loadMoreBtn = document.getElementById("loadMoreBtn");
-      const status = document.getElementById("status");
-      loadMoreBtn.innerText = "Loading...";
-      loadMoreBtn.disabled = true;
-      currentPage++;
-
-      try {
-        let newProducts = await fetchProductsData(currentPage);
-        if (newProducts.length > 0) {
-          newProducts = initializeProductData(newProducts);
-          globalProductsData = globalProductsData.concat(newProducts);
-          renderApp(); 
-          status.innerText = `Loaded ${globalProductsData.length} products total.`;
-        }
-        const isMyStoreChecked = document.getElementById("myStoreCheck")?.checked;
-        if (isMyStoreChecked) {
-          if (!hasMoreBackendProducts) {
-            loadMoreBtn.style.display = "none"; 
-          } else {
-            loadMoreBtn.innerText = "Load More Products";
-            loadMoreBtn.disabled = false;
-          }
-        } else {
-          if (newProducts.length < 250) {
-            loadMoreBtn.style.display = "none"; 
-          } else {
-            loadMoreBtn.innerText = "Load More Products";
-            loadMoreBtn.disabled = false;
-          }
-        }
-      } catch (error) {
-        status.innerText = `Error: ${error.message || "Could not load more products."}`;
-        loadMoreBtn.innerText = "Load More Products";
-        loadMoreBtn.disabled = false;
-      }
-    }
-
-    function applyFilters() { renderApp(); }
-
-    async function changeCurrency() {
-      const select = document.getElementById("currencySelect");
-      activeCurrency = select.value;
-      
-      if (activeCurrency === "original") {
-        renderApp();
-        return;
-      }
-
-      const status = document.getElementById("status");
-      const originalStatus = status.innerText;
-      status.innerText = "Fetching live exchange rates...";
-      
-      try {
-        const shopUrl = document.getElementById("collectionUrl").value.toLowerCase();
-        baseStoreCurrency = shopUrl.includes(".pk") ? "pkr" : "usd";
-        
-        if (!exchangeRates || !exchangeRates[baseStoreCurrency]) {
-          const res = await fetch(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${baseStoreCurrency}.json`);
-          exchangeRates = await res.json();
-        }
-        status.innerText = originalStatus;
-        renderApp();
-      } catch (error) {
-        status.innerText = "Failed to load exchange rates.";
-        console.error(error);
-      }
-    }
-    
-    function getCurrencySymbol(curr) {
-      const symbols = { usd: "$", bdt: "৳", pkr: "rs ", inr: "₹", eur: "€", gbp: "£" };
-      return symbols[curr] || curr.toUpperCase();
-    }
-
-    function renderApp() {
-      const gallery = document.getElementById("gallery");
-      gallery.innerHTML = "";
-      const isSelectAllChecked = document.getElementById("selectAllCheckbox").checked;
-      const query = document.getElementById("filterGeneral").value.toLowerCase();
-
-      globalProductsData.forEach((product, globalIndex) => {
-        // Single Search Filter matching Title, Vendor, Type or SKU
-        if (query) {
-            const matchTitle = product.title && product.title.toLowerCase().includes(query);
-            const matchVendor = product.vendor && product.vendor.toLowerCase().includes(query);
-            const matchType = product.product_type && product.product_type.toLowerCase().includes(query);
-            const matchSku = product.variants && product.variants.length > 0 && product.variants[0].sku && product.variants[0].sku.toLowerCase().includes(query);
-            
-            if (!matchTitle && !matchVendor && !matchType && !matchSku) return;
-        }
-
-        if (product.images && product.images.length > 0) {
-          // Restore specific image selections if it was saved before
-          if (globalSelectedProducts.has(product.id)) {
-            product.selectedImageIndices = globalSelectedProducts.get(product.id).selectedImageIndices;
-          }
-
-          const thumb = getMasterImageUrl(product.images[0].src);
-          const box = document.createElement("div");
-          box.className = "image-box";
-          
-          // Check if it's already in our global selected map, or if select all is checked
-          const isSelected = globalSelectedProducts.has(product.id) || isSelectAllChecked;
-          const checkedAttr = isSelected ? "checked" : "";
-          const selectedClass = isSelected ? "selected" : "";
-          const vendorText = product.vendor ? ` | ${product.vendor}` : "";
-          const selectedCount = product.selectedImageIndices.length;
-          
-          // If select all is checked, ensure it's added to the global map
-          if (isSelectAllChecked) {
-             globalSelectedProducts.set(product.id, product);
-          }
-
-          let priceDisplay = "";
-          let skuText = "N/A";
-          if (product.variants && product.variants.length > 0) {
-            skuText = product.variants[0].sku || "N/A";
-            let priceVal = parseFloat(product.variants[0].price);
-            
-            if (activeCurrency === "original") {
-              const shopUrl = document.getElementById("collectionUrl").value.toLowerCase();
-              if (shopUrl.includes(".pk")) {
-                priceDisplay = `${priceVal} rs`;
-              } else {
-                priceDisplay = `$${priceVal}`;
-              }
-            } else {
-              if (exchangeRates && exchangeRates[baseStoreCurrency] && exchangeRates[baseStoreCurrency][activeCurrency]) {
-                const rate = exchangeRates[baseStoreCurrency][activeCurrency];
-                const convertedPrice = (priceVal * rate).toFixed(2);
-                priceDisplay = `${getCurrencySymbol(activeCurrency)}${convertedPrice}`;
-              } else {
-                priceDisplay = `Loading...`;
-              }
-            }
-          }
-          
-          const typeText = product.product_type || "N/A";
-
-          box.innerHTML = `
-            <img src="${thumb}" loading="lazy" onclick="openModal(${globalIndex}, 0)">
-            <div class="product-info ${selectedClass}" onclick="toggleSingleSelection(${globalIndex}, this)">
-              <div class="product-details">
-                <div class="product-title" title="${product.title}">${product.title}</div>
-                <div class="product-meta">
-                  Selected: <b>${selectedCount}/${product.images.length}</b> images ${vendorText}
+    <div id="loginOverlay" class="fixed inset-0 z-[100] bg-gray-900 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative">
+            <div class="bg-green-600 h-2"></div>
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <i class="fa-brands fa-shopify text-5xl text-green-600 mb-4"></i>
+                    <h1 class="text-2xl font-bold text-gray-800">Store Login</h1>
+                    <p class="text-sm text-gray-500">Access Live Shopify Inventory</p>
                 </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                  <button class="btn-outline" onclick="openSelectorModal(${globalIndex}, event)">Select Specific Images</button>
-                  <span style="font-weight: 600; font-size: 12px; color: #28a745; margin-top: 8px; white-space: nowrap;">${priceDisplay}</span>
+                <div class="space-y-4">
+                    <select id="loginStoreSelect" class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500">
+                        <option value="" disabled selected>Select Your Store</option>
+                        <option value="admin">Admin</option>
+                        <option value="dhanmondi">Dhanmondi Store</option>
+                        <option value="banani">Banani Store</option>
+                        <option value="uttara">Uttara Store</option>
+                    </select>
+                    <div id="passwordFieldWrapper" class="hidden">
+                        <input type="password" id="loginPassword" placeholder="Enter Store Password" class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <button id="loginBtn" onclick="attemptLogin()" class="w-full bg-gray-900 text-white font-bold py-3 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2" disabled>
+                        <span>Access Dashboard</span>
+                    </button>
+                    <p id="loginError" class="text-red-500 text-xs mt-2 hidden text-center">Incorrect password</p>
                 </div>
-                <div style="font-size: 11px; color: #6c757d; margin-top: 8px;">
-                  Type: <b>${typeText}</b> | SKU: <b>${skuText}</b>${product.status ? ` | Status: <b>${product.status}</b>` : ""}
-                </div>
-              </div>
-              <input type="checkbox" class="product-cb" value="${globalIndex}" ${checkedAttr} onclick="event.stopPropagation(); updateDownloadButton()">
             </div>
-          `;
-          gallery.appendChild(box);
-        }
-      });
-      updateDownloadButton();
-    }
+        </div>
+    </div>
 
-    function toggleSingleSelection(index, infoDiv) {
-      const cb = infoDiv.querySelector('.product-cb');
-      cb.checked = !cb.checked;
-      infoDiv.classList.toggle('selected', cb.checked);
-      
-      const product = globalProductsData[index];
-      if (cb.checked) {
-        globalSelectedProducts.set(product.id, product);
-      } else {
-        globalSelectedProducts.delete(product.id);
-      }
-      
-      updateDownloadButton();
-    }
+    <div id="imagePreviewModal" class="fixed inset-0 z-[250] bg-black/95 hidden flex items-center justify-center p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300" onclick="closeImagePreview(event)">
+        <button onclick="closeImagePreview(null, true)" class="absolute top-5 right-5 z-[260] text-white/80 hover:text-white bg-gray-800/50 hover:bg-gray-700/80 rounded-full w-10 h-10 flex items-center justify-center transition-all backdrop-blur-md border border-white/10 shadow-lg">
+            <i class="fa-solid fa-times text-xl"></i>
+        </button>
+        <div class="relative max-w-5xl w-full max-h-screen flex flex-col items-center justify-center">
+            <img id="previewImage" src="" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-gray-800">
+            <h3 id="previewTitle" class="text-white/90 mt-4 text-lg font-medium text-center tracking-wide px-4"></h3>
+        </div>
+    </div>
 
-    window.toggleSelectAll = function(checkbox) {
-      const checkboxes = document.querySelectorAll(".product-cb");
-      const infoDivs = document.querySelectorAll(".product-info");
-      checkboxes.forEach((cb, i) => {
-        cb.checked = checkbox.checked;
-        infoDivs[i].classList.toggle('selected', checkbox.checked);
-        
-        const product = globalProductsData[cb.value];
-        if (checkbox.checked) {
-          globalSelectedProducts.set(product.id, product);
-        } else {
-          globalSelectedProducts.delete(product.id);
-        }
-      });
-      updateDownloadButton();
-    }
+    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg translate-y-20 opacity-0 transition-all duration-300 z-[60] flex items-center gap-2 text-xs whitespace-nowrap">
+        <i class="fa-solid fa-circle-check text-green-400"></i> <span id="toastMsg">Success</span>
+    </div>
 
-    function updateDownloadButton() {
-      const checkedCount = globalSelectedProducts.size;
-      const btn = document.getElementById("downloadSelectedBtn");
-      btn.innerText = `Download (${checkedCount}) ZIP`;
-      btn.disabled = checkedCount === 0;
-    }
+    <div id="mainAppView">
+        <div class="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-3 py-3">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-brands fa-shopify text-2xl text-green-600"></i>
+                        <div>
+                            <h1 class="font-bold text-base leading-tight text-gray-800">Store Manager</h1>
+                            <p class="text-[10px] text-gray-500">Shopify Sync</p>
+                        </div>
+                        <button onclick="openPosSyncView()" class="hidden sm:flex ml-4 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-md transition shadow items-center gap-1 whitespace-nowrap">
+                            <i class="fa-solid fa-rotate"></i> POS Sync
+                        </button>
+                    </div>
+                    <div class="text-right flex flex-col items-end gap-1">
+                        <div class="flex items-center gap-3">
+                            <div id="adminBellContainer" class="notification-bell hidden">
+                                <i class="fa-solid fa-bell text-gray-600 text-lg hover:text-blue-600 transition-colors" onclick="toggleAdminNotifications()"></i>
+                                <span id="adminBellDot" class="notification-dot"></span>
+                                <div id="adminNotificationPopup" class="notification-popup">
+                                    <div class="p-3 border-b border-gray-100 font-bold text-xs text-gray-500 bg-gray-50 flex justify-between items-center">
+                                        <span>RECENT ACTIVITY</span>
+                                        <button id="markAllReadBtn" onclick="markAllNotificationsRead()" class="hidden text-[9px] bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded transition-colors uppercase tracking-wider cursor-pointer shadow-sm">
+                                            <i class="fa-solid fa-check-double mr-1"></i> Read All
+                                        </button>
+                                    </div>
+                                    <div id="adminNotificationList" class="divide-y divide-gray-100">
+                                        <div class="p-4 text-center text-xs text-gray-400">No recent updates</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="relative">
+                                <div class="flex items-center justify-end gap-2 text-green-700 font-bold text-sm uppercase tracking-wide">
+                                    <i class="fa-solid fa-store text-xs"></i> <span id="displayStoreName">...</span>
+                                    <i class="fa-solid fa-ellipsis-vertical text-gray-500 cursor-pointer px-1 hover:text-black" onclick="toggleSettingsMenu()"></i>
+                                </div>
+                                <div id="settingsMenu" class="hidden absolute right-0 mt-2 min-w-max bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
+                                    <button onclick="openChangePasswordModal()" class="w-full flex items-center px-3.5 py-2.5 text-xs text-gray-700 hover:bg-gray-100 font-bold whitespace-nowrap"><i class="fa-solid fa-key w-5 text-left text-gray-500"></i> <span>Changes Password</span></button>
+                                    <button onclick="logout()" class="w-full flex items-center px-3.5 py-2.5 text-xs text-red-500 hover:bg-gray-100 font-bold whitespace-nowrap border-t border-gray-50"><i class="fa-solid fa-right-from-bracket w-5 text-left"></i> <span>LOGOUT</span></button>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="openPosSyncView()" class="sm:hidden bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-md transition shadow flex items-center gap-1 whitespace-nowrap">
+                            <i class="fa-solid fa-rotate"></i> POS Sync
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2 w-full">
+                    <div class="custom-select-wrapper flex-1 min-w-0" id="customDropdown">
+                        <div class="custom-select-trigger" onclick="toggleDropdown()">
+                            <span id="dropdownSelectedText" class="truncate">Select Collection</span>
+                            <i class="fa-solid fa-chevron-down text-xs text-gray-400 ml-2"></i>
+                        </div>
+                        <div class="custom-options shadow-xl" id="dropdownOptions">
+                            <div class="search-in-dropdown">
+                                <input type="text" id="dropdownSearchInput" placeholder="Search collection..." class="w-full text-xs p-2 border border-gray-200 rounded bg-gray-50 focus:outline-none focus:border-blue-500" onclick="event.stopPropagation()" oninput="filterDropdownOptions()">
+                            </div>
+                            <div class="max-h-48 overflow-y-auto custom-scroll" id="dropdownListContainer"></div>
+                        </div>
+                    </div>
+                    <button onclick="clearFilters()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center border border-gray-300 transition-colors" title="Reset"><i class="fa-solid fa-rotate-left text-xs"></i></button>
+                    <div class="flex-1 min-w-0 flex gap-2 items-center">
+                        <div class="relative flex-1 min-w-0">
+                            <i class="fa-solid fa-search hidden sm:block absolute left-3 top-3 text-gray-400 text-xs"></i>
+                            <input type="text" id="searchInput" placeholder="Search" class="w-full px-3 sm:pl-8 sm:pr-3 py-2.5 sm:py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs sm:text-[10px] font-medium focus:outline-none focus:border-green-500 uppercase" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <button onclick="triggerSearchProcess()" class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg transition-colors flex-shrink-0 shadow-sm flex items-center justify-center">
+                            <i class="fa-solid fa-search sm:hidden text-xs"></i>
+                            <span class="hidden sm:inline">Search</span>
+                        </button>
+                        <label class="hidden sm:flex items-center gap-1.5 cursor-pointer bg-white border border-gray-300 px-2.5 py-2 rounded-lg shadow-sm hover:bg-gray-50 flex-shrink-0 transition-colors" title="Auto-trim last 4 digits for Scanner">
+                            <input type="checkbox" id="autoTrimCheck" class="w-3.5 h-3.5 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer">
+                            <span class="text-[10px] font-bold text-gray-700 uppercase">Auto</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    function generateUniqueFolderName(product, folderTracker) {
-      const baseName = cleanFileName(product.title);
-      let finalName = baseName;
-      if (folderTracker.has(baseName)) {
-        const sku = product.variants && product.variants.length > 0 ? cleanFileName(product.variants[0].sku) : null;
-        if (sku && !folderTracker.has(`${baseName} - ${sku}`)) finalName = `${baseName} - ${sku}`;
-        else {
-          let count = folderTracker.get(baseName) + 1;
-          while (folderTracker.has(`${baseName} - ${count}`)) count++;
-          finalName = `${baseName} - ${count}`;
-          folderTracker.set(baseName, count); 
-        }
-      } else folderTracker.set(baseName, 1);
-      folderTracker.set(finalName, 1);
-      return finalName;
-    }
+        <div class="max-w-full mx-auto px-4 py-4">
+            
+            <div id="statsBar" class="hidden flex justify-between items-center mb-4 max-w-7xl mx-auto">
+                <h2 class="text-lg font-bold text-gray-700">Inventory</h2>
+                <div class="flex items-center gap-2">
+                    <select id="sortFilter" class="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-green-500 bg-white text-gray-700 h-8">
+                        <option value="STATUS_ACTIVE">Status: Active First</option>
+                        <option value="CREATED_AT:true" selected>Date, new to old</option>
+                        <option value="CREATED_AT:false">Date, old to new</option>
+                        <option value="TITLE:false">Alphabetically, A-Z</option>
+                        <option value="TITLE:true">Alphabetically, Z-A</option>
+                        <option value="PRICE:false">Price, low to high</option>
+                        <option value="PRICE:true">Price, high to low</option>
+                        <option value="BEST_SELLING:false">Best selling</option>
+                        <option value="MANUAL:false">Featured</option>
+                    </select>
+                    <div class="text-xs text-gray-500 bg-white px-2 py-1 rounded border h-8 flex items-center">Count: <span id="productCount" class="font-bold text-black ml-1">0</span></div>
+                </div>
+            </div>
 
-    async function downloadSelectedAsZip() {
-      const status = document.getElementById("status");
-      const downloadBtn = document.getElementById("downloadSelectedBtn");
-      const format = document.getElementById("formatSelect").value;
-      const customZipNameInput = document.getElementById("zipFileName").value.trim();
-      
-      // Fetch selected products from the global map instead of just DOM checkboxes
-      const selectedProducts = Array.from(globalSelectedProducts.values());
-      downloadBtn.disabled = true;
-      const zip = new JSZip();
-      
-      // Calculate total specific images selected
-      let totalImagesToDownload = selectedProducts.reduce((sum, p) => sum + p.selectedImageIndices.length, 0);
-      
-      if(totalImagesToDownload === 0) {
-          status.innerText = "No specific images selected to download!";
-          downloadBtn.disabled = false;
-          return;
-      }
+            <div id="adminBulkBar" class="hidden mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex justify-between items-center max-w-7xl mx-auto">
+                <div class="flex items-center gap-2">
+                    <p class="text-xs font-bold text-red-600 uppercase mr-2"><i class="fa-solid fa-screwdriver-wrench mr-1"></i> Admin</p>
+                    <button onclick="selectAllActive()" class="text-[10px] bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-100 transition-colors font-semibold shadow-sm">
+                        Select All Active
+                    </button>
+                    <button onclick="selectAllMainStock()" class="text-[10px] bg-white border border-blue-300 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-50 transition-colors font-semibold shadow-sm">
+                        Select Main Stock
+                    </button>
+                    <button onclick="clearSelection()" class="text-[10px] bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-100 transition-colors font-semibold shadow-sm">
+                        Clear Selection
+                    </button>
+                </div>
+                <button id="zeroDraftBtn" onclick="executeBulkZero()" class="bg-red-600 text-white text-[10px] font-bold px-4 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm" disabled>
+                    Bulk Zero Action (<span id="selectedCount">0</span>)
+                </button>
+            </div>
 
-      let processedCount = 0;
-      const folderTracker = new Map();
+            <div id="initialState" class="text-center py-24">
+                <div class="bg-white p-8 rounded-2xl shadow-sm inline-block border border-gray-100 mx-4">
+                    <div class="text-green-600 text-5xl mb-4"><i class="fa-solid fa-boxes-stacked"></i></div>
+                    <h2 class="text-xl font-bold text-gray-700 mb-2">Inventory Ready</h2>
+                    <p class="text-sm text-gray-500">Select a collection or search to begin.</p>
+                    <button id="installAppBtn" class="hidden mt-6 bg-gray-900 text-white text-xs px-4 py-2 rounded-full mx-auto"><i class="fa-solid fa-download mr-1"></i> Install App</button>
+                </div>
+            </div>
 
-      try {
-        for (const product of selectedProducts) {
-          if (!product.images || product.selectedImageIndices.length === 0) continue;
+            <div id="loadingState" class="hidden text-center py-20">
+                <div class="loader"></div>
+                <p id="loadingText" class="text-xs text-gray-500 mt-2">Loading...</p>
+            </div>
 
-          const folderName = generateUniqueFolderName(product, folderTracker);
-          const folder = zip.folder(folderName);
-          
-          for (let i = 0; i < product.images.length; i++) {
-            // Check if this image index was selected by user
-            if(!product.selectedImageIndices.includes(i)) continue;
+            <div id="productGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 hidden"></div>
+            
+            <div id="loadMoreContainer" class="hidden text-center mt-8 pb-10">
+                <button onclick="loadMoreProducts()" class="bg-white border border-gray-300 text-gray-700 text-sm font-semibold px-6 py-2 rounded-full hover:bg-gray-50 shadow-sm transition-all">
+                    Load More <i class="fa-solid fa-arrow-down ml-1"></i>
+                </button>
+            </div>
 
-            const url = getMasterImageUrl(product.images[i].src);
-            try {
-              const rawBlob = await fetchImageAsBlob(url);
-              const { blob: finalBlob, ext } = await convertImageBlob(rawBlob, format);
-              const filename = `${folderName}-${i + 1}.${ext}`;
-              folder.file(filename, finalBlob);
-            } catch (err) {
-              console.error(`Failed to process ${url}`, err);
+            <div id="emptyState" class="hidden text-center py-16">
+                <div class="text-gray-300 text-4xl mb-2"><i class="fa-solid fa-box-open"></i></div>
+                <p class="text-sm text-gray-500">No results found.</p>
+            </div>
+        </div>
+    </div> <div id="posSyncView" class="hidden">
+        <div class="p-4 md:p-8" style="zoom: 80%;">
+            <div id="customAlert" class="fixed top-10 left-1/2 transform -translate-x-1/2 z-[150] hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg transition-opacity duration-300 opacity-0 flex items-center justify-between min-w-[300px]">
+                <div class="flex items-center">
+                    <i class="fa-solid fa-circle-exclamation mr-3 text-lg"></i>
+                    <span id="customAlertMessage" class="font-bold text-sm"></span>
+                </div>
+                <button onclick="hideCustomAlert()" class="text-red-700 hover:text-red-900 ml-4"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="w-full mx-auto">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 mt-4">
+                    <div class="flex justify-between items-center mb-6 border-b pb-4">
+                        <div class="flex items-center gap-4">
+                            <button onclick="closePosSyncView()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-bold px-4 py-2 rounded transition shadow-sm flex items-center">
+                                <i class="fa-solid fa-arrow-left mr-2"></i> Back to Inventory
+                            </button>
+                            <h2 class="text-xl font-bold text-gray-800"><i class="fa-solid fa-rotate mr-2 text-blue-500"></i> POS to Web Sync</h2>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">STORE LOCATION</label>
+                            <select id="posStoreCode" class="w-full border border-gray-200 rounded-md p-2 text-sm bg-gray-100 outline-none text-gray-600 font-bold">
+                                <option value="">Choose Store</option>
+                                <option value="100010003">BANANI STORE</option>
+                                <option value="100010002">DHANMONDI STORE</option>
+                                <option value="100010006">UTTARA STORE</option>
+                                <option value="100010004">PREMIUM E-STORE</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">FROM DATE</label>
+                            <input type="date" id="posFromDate" class="w-full border border-gray-200 rounded-md p-2 text-sm bg-gray-50 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">TO DATE</label>
+                            <input type="date" id="posEndDate" class="w-full border border-gray-200 rounded-md p-2 text-sm bg-gray-50 outline-none">
+                        </div>
+                        <div>
+                            <button id="getReportBtn" onclick="fetchPosSalesData()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-md transition shadow-md text-sm">
+                                <i class="fa-solid fa-cloud-arrow-down mr-1"></i> Get Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="posLoadingMsg" class="hidden text-center py-10">
+                    <div class="loader loader-small mb-2"></div>
+                    <p class="text-gray-500 font-semibold text-sm">Fetching Data...</p>
+                </div>
+
+                <div id="posInvoiceContainer" class="grid grid-cols-1 gap-4 pb-20"></div>
+            </div>
+
+            <div id="posProductModal" class="fixed inset-0 z-50 bg-gray-50 hidden flex flex-col w-full h-full overflow-hidden">
+                <div class="p-4 md:p-6 border-b flex justify-between items-center bg-white shadow-sm z-10">
+                    <div>
+                        <h3 class="font-bold text-2xl text-gray-800">Products for SKU: <span id="posModalSkuTitle" class="text-blue-600"></span></h3>
+                        <p class="text-sm text-gray-500 mt-1">Select the correct variant to update stock</p>
+                    </div>
+                    <button onclick="closePosModal()" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-6 py-3 rounded-xl transition-colors flex items-center shadow-sm">
+                        <i class="fa-solid fa-arrow-left mr-2"></i> Back
+                    </button>
+                </div>
+                
+                <div id="posModalProducts" class="p-4 md:p-8 overflow-y-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 bg-gray-50 flex-1 content-start"></div>
+            </div>
+        </div>
+    </div> <div id="variantModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 flex flex-col max-h-[90vh]">
+            <div class="bg-gray-50 px-5 py-3 border-b flex justify-between items-center flex-shrink-0">
+                <div>
+                    <h3 class="font-bold text-base truncate max-w-[200px]" id="modalProductName">...</h3>
+                    <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider" id="modalStoreName">...</p>
+                </div>
+                <button id="modalCloseBtn" onclick="closeModal()" class="text-gray-400 hover:text-red-500 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity">
+                    <i class="fa-solid fa-times text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="p-5 overflow-y-auto custom-scroll flex-grow" id="modalVariantsContainer"></div>
+            
+            <div class="bg-gray-50 px-5 py-3 border-t flex justify-between items-center gap-2 flex-shrink-0">
+                <button id="modalCancelBtn" onclick="closeModal()" class="px-3 py-2 text-xs font-medium text-gray-600 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">Cancel</button>
+                <div class="flex gap-2">
+                    <button id="saveBtn" onclick="saveInventoryChanges('main')" class="px-4 py-2 bg-black text-white text-xs font-bold uppercase rounded hover:bg-gray-800 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                        <span id="saveBtnText">Update</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmationModal" class="fixed inset-0 z-[210] bg-transparent hidden flex items-center justify-center p-4 backdrop-blur-md transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-100 animate-slide-down">
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Are you sure?</h3>
+                <p id="confirmMsg" class="text-sm text-gray-600 mb-6">This action cannot be undone.</p>
+                <div class="flex gap-3">
+                    <button onclick="closeConfirmModal()" class="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button id="confirmYesBtn" onclick="finalizeBulkZero()" class="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 shadow-md transition-transform active:scale-95">
+                        Yes, Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="errorModal" class="fixed inset-0 z-[200] bg-black/90 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xs text-center overflow-hidden transform scale-100 animate-slide-down border border-red-200">
+            <div class="bg-red-50 p-6 border-b border-red-100">
+                <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                     <i class="fa-solid fa-triangle-exclamation text-3xl"></i>
+                </div>
+                <h2 class="text-xl font-bold text-red-600">Update Failed!</h2>
+                <p id="errorModalMsg" class="text-xs text-red-500 mt-2 font-semibold px-4 pb-2"></p>
+            </div>
+            <div class="p-6">
+                <button onclick="location.reload()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> OK, Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="allImagesModal" class="fixed inset-0 z-[200] bg-black/80 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+                <h3 class="font-bold text-gray-800"><i class="fa-regular fa-images text-blue-500 mr-2"></i>Product Images</h3>
+                <button onclick="closeAllImagesModal()" class="text-gray-400 hover:text-red-500 transition-colors">
+                    <i class="fa-solid fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto custom-scroll flex-grow">
+                <div id="allImagesContainer" class="grid grid-cols-3 md:grid-cols-4 gap-3"></div>
+            </div>
+            <div class="p-4 border-t bg-gray-50 rounded-b-xl flex justify-between items-center">
+                <button onclick="selectAllImages()" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded transition-colors">Select All</button>
+                <button id="downloadImagesBtn" onclick="downloadSelectedImages()" disabled class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+                    <i class="fa-solid fa-download mr-1"></i> Download
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="globalStockModal" class="fixed inset-0 z-[300] bg-black/60 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden">
+            <div class="p-4 border-b bg-gray-100 flex justify-between items-center">
+                <h3 id="globalStockTitle" class="font-bold text-gray-800 text-sm">Global Stock</h3>
+                <button onclick="closeGlobalStockPopup()" class="text-gray-500 hover:text-red-500 transition-colors">
+                    <i class="fa-solid fa-times text-lg"></i>
+                </button>
+            </div>
+            <div id="globalStockContent" class="p-4 bg-white">
+            </div>
+        </div>
+    </div>
+
+    <div id="changePasswordModal" class="fixed inset-0 z-[400] bg-black/60 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden relative">
+            <div class="p-5 border-b bg-gray-50 flex justify-between items-center">
+                <h3 class="font-bold text-gray-800 text-sm"><i class="fa-solid fa-key text-blue-500 mr-2"></i>Changes Password</h3>
+                <button onclick="closeChangePasswordModal()" class="text-gray-400 hover:text-red-500 transition-colors">
+                    <i class="fa-solid fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="space-y-4">
+                    <div>
+                        <input type="password" id="oldPasswordInput" placeholder="Old Password" class="w-full px-4 py-2 border border-gray-300 rounded outline-none focus:border-blue-500 text-sm">
+                    </div>
+                    <div>
+                        <input type="password" id="newPasswordInput" placeholder="New Password" class="w-full px-4 py-2 border border-gray-300 rounded outline-none focus:border-blue-500 text-sm">
+                    </div>
+                    <p id="passwordErrorMsg" class="text-red-500 text-xs hidden font-bold">Old password Wrong</p>
+                    <p id="passwordSuccessMsg" class="text-green-600 text-xs hidden font-bold">Password Changes Done !</p>
+                    <button id="changePassBtn" onclick="submitPasswordChange()" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition-colors text-sm">Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GLOBAL_STOCK_URL = "https://global-stock-backend-m247.onrender.com/api";
+        // Main Variables
+        let products = [];
+        let collectionsList = [];
+        let currentStore = null;
+        let currentCollectionName = ''; 
+        let currentEditingProductId = null;
+        let searchDebounceTimer = null;
+        let lastCursor = null; 
+        let hasMoreProducts = false;
+        let selectedCollectionId = "";
+        let notificationInterval = null;
+        let currentReadData = { lastRead: 0, reads: [] };
+        let sseEventSource = null;
+
+        // POS Variables
+        let currentUser = 'admin'; 
+        let posSyncedMemory = [];
+        let posActiveInvoice = null;
+        const POS_STORE_MAP = {
+            'admin': '100010004', 
+            'dhanmondi': '100010002',
+            'banani': '100010003',
+            'uttara': '100010006'
+        };
+        const REVERSE_STORE_MAP = {
+            '100010004': 'admin',
+            '100010002': 'dhanmondi',
+            '100010003': 'banani',
+            '100010006': 'uttara'
+        };
+
+        // --- AUTH & PERSISTENCE ---
+        const loginStoreSelect = document.getElementById('loginStoreSelect');
+        const passwordFieldWrapper = document.getElementById('passwordFieldWrapper');
+        const loginBtn = document.getElementById('loginBtn');
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedStore = localStorage.getItem('storeUser');
+            if (savedStore) {
+                currentStore = savedStore;
+                document.getElementById('displayStoreName').innerText = currentStore;
+                document.getElementById('loginOverlay').style.display = 'none';
+                loadInitialData(); 
+                syncPosUser();
             }
 
-            processedCount++;
-            status.innerText = `Processing: ${processedCount} / ${totalImagesToDownload} images...`;
-          }
+            // POS Dates init
+            let today = new Date().toISOString().split('T')[0];
+            document.getElementById('posFromDate').value = today;
+            document.getElementById('posEndDate').value = today;
+        });
+
+        loginStoreSelect.addEventListener('change', function() { 
+            if(this.value) { 
+                passwordFieldWrapper.classList.remove('hidden'); 
+                loginBtn.disabled = false; 
+            } 
+        });
+
+        [loginStoreSelect, document.getElementById('loginPassword')].forEach(element => {
+            element.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !loginBtn.disabled) {
+                    e.preventDefault();
+                    attemptLogin();
+                }
+            });
+        });
+
+        async function attemptLogin() {
+            const selectedStore = loginStoreSelect.value;
+            const password = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Checking...`;
+            document.getElementById('loginError').classList.add('hidden');
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ action: 'login', store: selectedStore, password: password })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    localStorage.setItem('storeUser', selectedStore);
+                    localStorage.setItem('authToken', data.token);
+                    currentStore = selectedStore;
+                    document.getElementById('displayStoreName').innerText = currentStore;
+                    document.getElementById('loginOverlay').style.display = 'none';
+                    loadInitialData();
+                    syncPosUser();
+                } else {
+                    document.getElementById('loginError').classList.remove('hidden');
+                    btn.disabled = false; btn.innerHTML = `<span>Access Dashboard</span>`;
+                }
+            } catch (error) {
+                const errorEl = document.getElementById('loginError');
+                errorEl.innerText = "Login Error";
+                errorEl.classList.remove('hidden');
+                btn.disabled = false; 
+                btn.innerHTML = `<span>Access Dashboard</span>`;
+            }
         }
 
-        status.innerText = "Compressing ZIP file... Please wait.";
-        const content = await zip.generateAsync({ type: "blob" });
+        function logout() { localStorage.removeItem('storeUser'); localStorage.removeItem('authToken'); location.reload(); }
+
+        // --- VIEW TOGGLE LOGIC ---
+        function openPosSyncView() {
+            document.getElementById('mainAppView').classList.add('hidden');
+            document.getElementById('posSyncView').classList.remove('hidden');
+            syncPosUser();
+        }
+
+        function closePosSyncView() {
+            document.getElementById('posSyncView').classList.add('hidden');
+            document.getElementById('mainAppView').classList.remove('hidden');
+            
+            // Reset POS Sync states
+            document.getElementById('posInvoiceContainer').innerHTML = '';
+            let today = new Date().toISOString().split('T')[0];
+            document.getElementById('posFromDate').value = today;
+            document.getElementById('posEndDate').value = today;
+            
+            const getReportBtn = document.getElementById('getReportBtn');
+            if (getReportBtn) {
+                getReportBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-down mr-1"></i> Get Report`;
+            }
+        }
+
+        function syncPosUser() {
+            if(currentStore) {
+                currentUser = currentStore;
+                const mappedStore = POS_STORE_MAP[currentUser];
+                const storeSelect = document.getElementById('posStoreCode');
+                
+                storeSelect.value = mappedStore;
+                storeSelect.disabled = (currentUser !== 'admin'); 
+            }
+        }
+
+        // --- INVENTORY UPDATE LOGIC (BATCH MODE) ---
+        async function saveInventoryChanges(type, specificVariantId = null, specificStore = null) {
+            if (!currentEditingProductId) return;
+
+            let btn = document.getElementById('saveBtn');
+            const closeBtn = document.getElementById('modalCloseBtn');
+            const cancelBtn = document.getElementById('modalCancelBtn');
+
+            if (type === 'branch') {
+                btn = document.querySelector(`button[onclick="saveInventoryChanges('branch', '${specificVariantId}', '${specificStore}')"]`);
+            } else if (type === 'reset_all') {
+                btn = document.querySelector(`button[onclick="saveInventoryChanges('reset_all', '${specificVariantId}')"]`);
+            }
+
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            if (closeBtn) closeBtn.disabled = true;
+            if (cancelBtn) cancelBtn.disabled = true;
+
+            btn.innerHTML = `<span class="mr-2">Saving...</span> <i class="fa-solid fa-circle-notch fa-spin"></i>`;
+
+            try {
+                const product = products.find(p => p.id == currentEditingProductId);
+                let updates = [];
+                
+                const itemsToZero = product.variants
+                    .filter(v => (v.actualShopifyStock || v.inventory.admin) > 0)
+                    .map(v => v.inventoryItemId);
+
+                if (type === 'main') {
+                    const inputs = document.querySelectorAll('#modalVariantsContainer input.main-input');
+                    inputs.forEach(input => {
+                        const variantId = input.getAttribute('data-variant-id');
+                        const inventoryItemId = input.getAttribute('data-inventory-item-id');
+                        const newQty = Math.max(0, parseInt(input.value) || 0);
+                        const variant = product.variants.find(v => v.id == variantId);
+                        const oldQty = variant.inventory[currentStore] || 0;
+                        variant.inventory[currentStore] = newQty; 
+
+                        let newSku = undefined;
+                        let newPrice = undefined;
+                        let oldSku = variant.sku;
+
+                        if (currentStore === 'admin') {
+                            const skuInput = document.getElementById(`sku-${variantId}`);
+                            const priceInput = document.getElementById(`price-${variantId}`);
+                            if (skuInput) newSku = skuInput.value;
+                            if (priceInput) newPrice = priceInput.value;
+                            
+                            if (newSku) variant.sku = newSku;
+                            if (newPrice) variant.price = newPrice;
+                        }
+
+                        updates.push({
+                            productId: product.id,
+                            variantId: variantId,
+                            inventoryItemId: inventoryItemId,
+                            store: currentStore,
+                            quantity: newQty,
+                            oldQuantity: oldQty,
+                            collectionName: currentCollectionName,
+                            sku: oldSku,
+                            newSku: newSku,
+                            newPrice: newPrice,
+                            itemsToZero: itemsToZero
+                        });
+                    });
+                } else if (type === 'branch') {
+                    const input = document.getElementById(`fix-${specificStore}-${specificVariantId}`);
+                    const newQty = Math.max(0, parseInt(input.value) || 0);
+                    const variant = product.variants.find(v => v.id == specificVariantId);
+                    const oldQty = variant.inventory[specificStore] || 0;
+                    variant.inventory[specificStore] = newQty;
+
+                    updates.push({
+                        productId: product.id,
+                        variantId: specificVariantId,
+                        inventoryItemId: variant.inventoryItemId,
+                        store: currentStore,
+                        quantity: newQty,
+                        oldQuantity: oldQty,
+                        collectionName: currentCollectionName,
+                        sku: variant.sku,
+                        itemsToZero: itemsToZero
+                    });
+                } else if (type === 'reset_all') {
+                    const stores = ['dhanmondi', 'banani', 'uttara'];
+                    const variant = product.variants.find(v => v.id == specificVariantId);
+
+                    stores.forEach(store => {
+                        variant.inventory[store] = 0;
+                        const input = document.getElementById(`fix-${store}-${specificVariantId}`);
+                        if (input) input.value = 0;
+
+                        updates.push({
+                            productId: product.id,
+                            variantId: specificVariantId,
+                            inventoryItemId: variant.inventoryItemId,
+                            store: store,
+                            quantity: 0,
+                            collectionName: currentCollectionName,
+                            sku: variant.sku,
+                            itemsToZero: itemsToZero
+                        });
+                    });
+                }
+
+                if (updates.length > 0) {
+                    const requests = updates.map(updateData => {
+                        const payload = { action: 'updateInventory', currentStatus: product.status, ...updateData };
+                        if (type === 'branch') payload.targetBranch = specificStore;
+                        if (type === 'reset_all') payload.targetBranch = 'reset_all';
+
+                        return fetch(WEB_APP_URL, {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                            },
+                            body: JSON.stringify(payload)
+                        }).then(res => {
+                            if (!res.ok) throw new Error("Network/Server Error: " + res.status);
+                            return res.json();
+                        });
+                    });
+
+                    const results = await Promise.all(requests);
+                    const hasError = results.some(res => res.status === 'error');
+                    
+                    if (!hasError) {
+                        if (type !== 'reset_all') {
+                            updates.forEach(update => {
+                                let diff = update.quantity - update.oldQuantity;
+                                const v = product.variants.find(vari => vari.id == update.variantId);
+                                if (v && diff !== 0) {
+                                    let newMainStock = (v.inventory.admin || 0) - diff;
+                                    if (newMainStock < 0) newMainStock = 0;
+                                    v.inventory.admin = newMainStock;
+                                    v.actualShopifyStock = newMainStock;
+                                }
+                            });
+                            
+                            // The logic to immediately change from Draft to Active in the UI
+                            if (product.status === 'DRAFT' || product.status === 'draft') {
+                                const hasStock = updates.some(u => u.quantity > 0);
+                                if (hasStock) product.status = 'ACTIVE';
+                            }
+                            
+                            renderProducts();
+                        }
+
+if (type === 'branch') {
+                            showToast(`${specificStore} Updated!`);
+                        } else if (type === 'reset_all') {
+                            renderProducts();
+                            showToast("All Branches Reset!");
+                        } else {
+                            closeModal();
+                            showToast("Updated Successfully!");
+                        }
+                    } else {
+                        const errorMsg = results.find(res => res.status === 'error')?.message || 'Update failed';
+                        throw new Error(errorMsg);
+                    }
+                }
+
+            } catch (error) {
+                console.error(error);
+                const errorMsgEl = document.getElementById('errorModalMsg');
+                if(errorMsgEl) errorMsgEl.innerText = error.message;
+                document.getElementById('errorModal').classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                if (closeBtn) closeBtn.disabled = false;
+                if (cancelBtn) cancelBtn.disabled = false;
+            }
+        }
+
+        // --- FETCHING (INVENTORY) ---
+        async function loadInitialData() {
+            toggleLoading(true, "Loading...");
+            try {
+                await fetchData();
+                initSSE();
+            } catch (e) { console.error(e); toggleLoading(false); }
+        }
+
+        async function fetchData() {
+            const response = await fetch(`${WEB_APP_URL}?action=getInitialData&store=${currentStore}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+            });
+            const data = await response.json();
+            if(data.status === 'success') {
+                collectionsList = data.collections.sort((a, b) => a.title.localeCompare(b.title));
+                populateCustomDropdown(collectionsList);
+                currentReadData = data.readData || { lastRead: 0, reads: [] };
+                handleNotifications(data.notifications, currentReadData);
+                document.getElementById('initialState').classList.remove('hidden');
+                document.getElementById('loadingState').classList.add('hidden');
+            }
+        }
+
+        function initSSE() {
+            if (sseEventSource) sseEventSource.close();
+            const token = localStorage.getItem('authToken');
+            sseEventSource = new EventSource(`${WEB_APP_URL.replace('/api', '/api/stream')}?token=${token}`);
+            sseEventSource.onmessage = function(event) {
+                try {
+                    const latestNotifications = JSON.parse(event.data);
+                    handleNotifications(latestNotifications, currentReadData);
+                } catch(e) {}
+            };
+            sseEventSource.onerror = function() {
+                sseEventSource.close();
+                setTimeout(initSSE, 5000);
+            };
+        }
+
+        function handleNotifications(notifications, readData = { lastRead: 0, reads: [] }) {
+            if (currentStore !== 'admin') {
+                notifications = notifications.filter(notif => {
+                    if (notif.stores && notif.stores.length === 1 && notif.stores[0] === currentStore) return false;
+                    return true;
+                });
+            }
+
+            const bellContainer = document.getElementById('adminBellContainer');
+            const list = document.getElementById('adminNotificationList');
+            const dot = document.getElementById('adminBellDot');
+            
+            let unreadNotifications = notifications.filter(notif => {
+                const notifTime = new Date(notif.time).getTime();
+                return notifTime > readData.lastRead && !readData.reads.includes(notifTime.toString());
+            });
+
+            // Show Read All button for Admin
+            const markAllBtn = document.getElementById('markAllReadBtn');
+            if (markAllBtn) {
+                if (currentStore === 'admin' && unreadNotifications.length > 0) {
+                    markAllBtn.classList.remove('hidden');
+                } else {
+                    markAllBtn.classList.add('hidden');
+                }
+            }
+
+            bellContainer.classList.remove('hidden');
+            if (unreadNotifications.length > 0) {
+                dot.style.display = 'block';
+                list.innerHTML = '';
+                unreadNotifications.forEach(notif => {
+                    const isSoldOut = notif.msg.includes('Sold Out');
+                    const isAllStore = notif.isAllStore;
+                    
+                    let iconBg = 'bg-blue-100 text-blue-600';
+                    let iconClass = 'fa-clipboard-check';
+                    let textClass = 'text-gray-900 font-bold';
+
+                    if (isSoldOut) {
+                        iconBg = 'bg-red-100 text-red-600';
+                        iconClass = 'fa-bolt';
+                        textClass = 'text-red-600 font-bold';
+                    } else if (isAllStore) {
+                        iconBg = 'bg-green-100 text-green-600';
+                        iconClass = 'fa-check-double';
+                        textClass = 'text-green-600 font-bold';
+                    }
+
+                    let displayMsg = notif.msg;
+                    displayMsg = displayMsg.charAt(0).toUpperCase() + displayMsg.slice(1);
+                    
+                    if (isAllStore) {
+                        if (isSoldOut) {
+                            displayMsg = displayMsg.replace('All Store Update Sold Out', 'All Store Update Sold Out SKU:');
+                        } else {
+                            displayMsg = displayMsg.replace('All Store Update', 'All Store Update SKU :');
+                        }
+                    } else {
+                        if (isSoldOut) {
+                            displayMsg = displayMsg.replace('Update Sold Out', 'Update Sold Out SKU :');
+                        } else {
+                            displayMsg = displayMsg.replace('Update', 'Update SKU :');
+                        }
+                    }
+
+                    const notifId = new Date(notif.time).getTime().toString();
+                    // Unread pulsing dot
+                    const unreadDot = `<span class="w-2 h-2 rounded-full bg-blue-500 absolute top-3 right-3 shadow-sm animate-pulse"></span>`;
+
+                    const div = document.createElement('div');
+                    div.className = 'notif-item p-3 hover:bg-blue-50 cursor-pointer flex items-start gap-2 border-b border-gray-50 relative bg-white transition-all duration-300';
+                    div.setAttribute('data-notif-id', notifId);
+                    div.innerHTML = `
+                        ${unreadDot}
+                        <div class="${iconBg} w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] mt-0.5"><i class="fa-solid ${iconClass}"></i></div>
+                        <div class="pr-3"><p class="text-xs ${textClass} leading-snug">${displayMsg}</p><p class="text-[10px] text-blue-600 mt-1 font-mono font-semibold">New • ${new Date(notif.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p></div>`;
+                    
+                    div.onclick = () => { 
+                        if (!currentReadData.reads.includes(notifId)) {
+                            currentReadData.reads.push(notifId);
+                            if (currentReadData.reads.length > 50) currentReadData.reads.shift();
+                        }
+
+                        fetch(WEB_APP_URL, {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                            },
+                            body: JSON.stringify({ action: 'markSingleRead', store: currentStore, notifId: notifId })
+                        });
+                        
+                        div.style.opacity = '0';
+                        setTimeout(() => {
+                            div.remove();
+                            if(list.children.length === 0) {
+                                dot.style.display = 'none';
+                                list.innerHTML = '<div class="p-4 text-center text-xs text-gray-400">No recent updates</div>';
+                                const markAllBtn = document.getElementById('markAllReadBtn');
+                                if (markAllBtn) markAllBtn.classList.add('hidden');
+                            }
+                        }, 200);
+
+                        searchProductById(notif.collection.replace('Sold Out ', '')); 
+                        document.getElementById('adminNotificationPopup').classList.remove('open'); 
+                    };
+                    list.appendChild(div);
+                });
+            } else {
+                dot.style.display = 'none';
+                list.innerHTML = '<div class="p-4 text-center text-xs text-gray-400">No recent updates</div>';
+            }
+        }
+
+        function toggleAdminNotifications() { document.getElementById('adminNotificationPopup').classList.toggle('open'); }
+        document.addEventListener('click', function(e) {
+            const bell = document.getElementById('adminBellContainer');
+            if (bell && !bell.contains(e.target)) { document.getElementById('adminNotificationPopup').classList.remove('open'); }
+        });
+
+        async function performSearch(query, collectionId, cursor = null) {
+            if(!cursor) {
+                document.getElementById('initialState').classList.add('hidden');
+                document.getElementById('loadMoreContainer').classList.add('hidden');
+                toggleLoading(true, "Searching...");
+            } else { document.querySelector('#loadMoreContainer button').innerText = "Loading..."; }
+
+            try {
+                let sortValue = document.getElementById('sortFilter').value;
+                if (sortValue === 'STATUS_ACTIVE') sortValue = 'CREATED_AT:true';
+
+                const [sortKey, reverse] = sortValue.split(':');
+                let url = `${WEB_APP_URL}?action=searchProducts`;
+                if(query) url += `&query=${encodeURIComponent(query)}`;
+                if(collectionId) url += `&collectionId=${encodeURIComponent(collectionId)}`;
+                if(cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
+                url += `&sortKey=${sortKey}&reverse=${reverse}`;
+
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+                });
+                const data = await response.json();
+
+                if(data.status === 'success') {
+                    if (cursor) { products = products.concat(data.products); } else { products = data.products; }
+                    lastCursor = data.pageInfo.endCursor;
+                    hasMoreProducts = data.pageInfo.hasNextPage;
+                    renderProducts();
+                } else { if(!cursor) { products = []; renderProducts(); } }
+            } catch (e) { console.error(e); } 
+            finally { toggleLoading(false); document.querySelector('#loadMoreContainer button').innerHTML = 'Load More <i class="fa-solid fa-arrow-down ml-1"></i>'; }
+        }
+
+        document.getElementById('sortFilter').addEventListener('change', () => {
+            const query = document.getElementById('searchInput').value;
+            performSearch(query, selectedCollectionId, null);
+        });
+
+        function populateCustomDropdown(list) {
+            const container = document.getElementById('dropdownListContainer');
+            container.innerHTML = '';
+            const allOpt = document.createElement('div');
+            allOpt.className = 'option'; allOpt.innerText = 'All Collections'; allOpt.onclick = () => selectCollection('', 'Select Collection');
+            container.appendChild(allOpt);
+            list.forEach(col => {
+                const div = document.createElement('div');
+                div.className = 'option'; div.innerText = col.title; div.dataset.value = col.id;
+                div.onclick = () => selectCollection(col.id, col.title);
+                container.appendChild(div);
+            });
+        }
+        function toggleDropdown() { document.getElementById('dropdownOptions').classList.toggle('open'); if(document.getElementById('dropdownOptions').classList.contains('open')) document.getElementById('dropdownSearchInput').focus(); }
+        function filterDropdownOptions() {
+            const filter = document.getElementById('dropdownSearchInput').value.toLowerCase();
+            const options = document.querySelectorAll('.custom-options .option');
+            options.forEach(opt => { opt.style.display = opt.innerText.toLowerCase().includes(filter) ? "" : "none"; });
+        }
+        function selectCollection(id, title) {
+            selectedCollectionId = id; currentCollectionName = title;
+            document.getElementById('dropdownSelectedText').innerText = title;
+            document.getElementById('dropdownOptions').classList.remove('open');
+            document.getElementById('dropdownSearchInput').value = ''; filterDropdownOptions();
+            lastCursor = null; if(id) { performSearch(null, id); } else { clearFilters(); }
+        }
+        document.addEventListener('click', function(e) { if (!document.getElementById('customDropdown').contains(e.target)) { document.getElementById('dropdownOptions').classList.remove('open'); } });
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = ''; selectedCollectionId = ""; currentCollectionName = "";
+            document.getElementById('dropdownSelectedText').innerText = "Select Collection";
+            products = []; lastCursor = null; hasMoreProducts = false;
+            document.getElementById('productGrid').classList.add('hidden');
+            document.getElementById('statsBar').classList.add('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('loadMoreContainer').classList.add('hidden');
+            document.getElementById('initialState').classList.remove('hidden');
+            document.getElementById('adminBulkBar').classList.add('hidden');
+            showToast("Reset");
+        }
+        function loadMoreProducts() { if (hasMoreProducts && lastCursor) { performSearch(document.getElementById('searchInput').value, selectedCollectionId, lastCursor); } }
+        function toggleLoading(show, text = "Loading...") {
+            const loader = document.getElementById('loadingState');
+            const grid = document.getElementById('productGrid');
+            const empty = document.getElementById('emptyState');
+            const stats = document.getElementById('statsBar');
+            document.getElementById('loadingText').innerText = text;
+            if(show) { loader.classList.remove('hidden'); if(!lastCursor) { grid.classList.add('hidden'); empty.classList.add('hidden'); stats.classList.add('hidden'); } } else { loader.classList.add('hidden'); }
+        }
         
-        const finalZipName = customZipNameInput 
-          ? `${cleanFileName(customZipNameInput)}.zip` 
-          : `Shopify_Bulk_Images_${Date.now()}.zip`;
-          
-        saveAs(content, finalZipName);
-        status.innerText = "Download Complete!";
-      } catch (error) {
-        status.innerText = "An error occurred during ZIP generation.";
-        console.error(error);
-      } finally {
-        downloadBtn.disabled = false;
-      }
-    }
-  </script>
+        // --- RENDER FUNCTION (INVENTORY) ---
+        function renderProducts() {
+            const grid = document.getElementById('productGrid');
+            const emptyState = document.getElementById('emptyState');
+            const statsBar = document.getElementById('statsBar');
+            const countSpan = document.getElementById('productCount');
+            const loadMoreBtn = document.getElementById('loadMoreContainer');
+            const adminBar = document.getElementById('adminBulkBar');
+
+            const sortVal = document.getElementById('sortFilter').value;
+            if (sortVal === 'STATUS_ACTIVE') {
+                products.sort((a, b) => {
+                    const statusA = (a.status || 'DRAFT').toUpperCase();
+                    const statusB = (b.status || 'DRAFT').toUpperCase();
+                    if (statusA === 'ACTIVE' && statusB !== 'ACTIVE') return -1;
+                    if (statusA !== 'ACTIVE' && statusB === 'ACTIVE') return 1;
+                    return 0; 
+                });
+            }
+
+            if (currentStore === 'admin') {
+                adminBar.classList.remove('hidden');
+            } else {
+                adminBar.classList.add('hidden');
+            }
+
+            statsBar.classList.remove('hidden'); grid.innerHTML = ''; countSpan.innerText = products.length;
+            if (products.length === 0) { emptyState.classList.remove('hidden'); grid.classList.add('hidden'); loadMoreBtn.classList.add('hidden'); return; } 
+            emptyState.classList.add('hidden'); grid.classList.remove('hidden');
+            
+            products.forEach(product => {
+                const info = getProductStatus(product);
+                const mainSku = product.variants[0]?.sku || 'N/A';
+                
+                let totalAllLocationsStock = 0;
+                product.variants.forEach(v => {
+                    totalAllLocationsStock += (v.inventory.admin || 0) + 
+                                             (v.inventory.dhanmondi || 0) + 
+                                             (v.inventory.banani || 0) + 
+                                             (v.inventory.uttara || 0);
+                });
+
+                let totalBranchStock = 0;
+                let activeBranches = new Set();
+                
+                product.variants.forEach(v => {
+                    totalBranchStock += (v.inventory.dhanmondi || 0) + (v.inventory.banani || 0) + (v.inventory.uttara || 0);
+                    if ((v.inventory.dhanmondi || 0) > 0) activeBranches.add("Dhanmondi");
+                    if ((v.inventory.banani || 0) > 0) activeBranches.add("Banani");
+                    if ((v.inventory.uttara || 0) > 0) activeBranches.add("Uttara");
+                });
+
+                let adminBranchStockHtml = '';
+                if (currentStore === 'admin' && activeBranches.size > 0) {
+                    adminBranchStockHtml = `<div class="text-[10px] text-green-600 font-bold mb-1 truncate"><i class="fa-solid fa-location-dot mr-1"></i>${Array.from(activeBranches).join(', ')}</div>`;
+                }
+
+                let committedBranches = new Set();
+                product.variants.forEach(v => {
+                    if (v.committed) {
+                        if (v.committed.dhanmondi > 0) committedBranches.add("Dhanmondi");
+                        if (v.committed.banani > 0) committedBranches.add("Banani");
+                        if (v.committed.uttara > 0) committedBranches.add("Uttara");
+                    }
+                });
+
+                let committedHtml = '';
+                if (committedBranches.size > 0) {
+                    let committedText = Array.from(committedBranches).map(b => `Committed ${b}`).join(', ');
+                    committedHtml = `<div class="text-[11px] text-red-600 font-bold mt-2 text-center bg-red-50 py-1 rounded border border-red-100 shadow-sm animate-pulse">${committedText}</div>`;
+                }
+
+                let variantBreakdownHtml = '';
+                if(product.variants.length > 0) {
+                    variantBreakdownHtml = '<div class="flex flex-wrap gap-1 mt-1.5">';
+                    product.variants.forEach(v => {
+                         let displayStock = 0;
+                         if (currentStore === 'admin') { displayStock = v.actualShopifyStock || 0; } else { displayStock = (v.inventory && v.inventory[currentStore]) ? v.inventory[currentStore] : 0; }
+                         const totalVarStock = displayStock; 
+                         const displayName = v.title.replace('Size ', '').replace(' / ', '-').substring(0, 10);
+                         const color = totalVarStock > 0 ? 'text-gray-700 font-medium bg-gray-100' : 'text-gray-400 bg-gray-50';
+                         variantBreakdownHtml += `<span class="text-[10px] px-1.5 py-0.5 rounded border border-gray-100 ${color}">${displayName}: ${totalVarStock}</span>`;
+                    });
+                    variantBreakdownHtml += '</div>';
+                }
+
+                let checkboxHtml = '';
+                if (currentStore === 'admin') {
+                    let mainTotal = 0;
+                    product.variants.forEach(v => { mainTotal += (v.actualShopifyStock || 0); });
+                    checkboxHtml = `<div class="absolute top-2 left-2 z-10" onclick="event.stopPropagation()">
+                        <input type="checkbox" class="bulk-check w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer shadow-sm" 
+                        data-id="${product.id}" 
+                        data-status="${info.status}" 
+                        data-stock="${totalBranchStock}"
+                        data-main-stock="${mainTotal}"
+                        onchange="updateBulkCount()">
+                    </div>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'product-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group flex flex-col h-full relative';
+                
+                const isDraft = info.status === 'DRAFT';
+                const isStoreOutOfStock = (currentStore !== 'admin') && (info.totalStock <= 0);
+                const soldBtnDisabled = (isDraft || isStoreOutOfStock) ? 'disabled' : '';
+                
+                let prices = product.variants.map(v => Math.round(parseFloat(v.price))).filter(p => !isNaN(p));
+                let productPrice = 'N/A';
+                if (prices.length > 0) {
+                    const minPrice = Math.min(...prices);
+                    const maxPrice = Math.max(...prices);
+                    productPrice = minPrice === maxPrice ? minPrice : `${minPrice} - ${maxPrice}`;
+                }
+
+                card.innerHTML = `${checkboxHtml}<div class="retro-img-container relative" onclick="openImagePreview('${product.image}', '${product.title.replace(/'/g, "\\'")}')"><img src="${product.image}" class="retro-img" onerror="this.src='https://via.placeholder.com/300?text=No+Image'"><div class="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${info.colorClass}">${info.status}</div></div><div class="p-3 flex flex-col flex-grow"><div class="flex justify-between items-start mb-1"><span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">${product.type || 'Product'}</span><div class="text-right flex flex-col gap-0.5"><span class="text-[10px] text-blue-600 font-mono font-bold cursor-pointer hover:underline" onclick="event.stopPropagation(); openGlobalStockPopup('${mainSku}')" title="Click to view global stock">SKU: ${mainSku}</span><span class="text-[10px] font-bold text-green-600 font-mono uppercase tracking-wide">Price: ${productPrice}</span></div></div><h3 class="font-bold text-gray-800 text-sm leading-tight mb-0.5 line-clamp-2">${product.title}</h3><div class="flex justify-between items-center mb-2"><p class="text-[10px] text-gray-500 font-bold">${product.vendor || 'No Vendor'}</p><button onclick="openAllImagesModal('${product.id}')" class="text-[9px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded border border-gray-300 font-bold transition-colors"><i class="fa-regular fa-images mr-1"></i> All Images</button></div>
+<div class="mt-auto">
+    <div class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 mb-1">
+        <i class="fas fa-warehouse mr-1"></i> All Location Stock: ${totalAllLocationsStock}
+    </div>
+    ${adminBranchStockHtml}
+    ${variantBreakdownHtml}${committedHtml}<div class="flex gap-2 mt-3 pt-3 border-t border-gray-100"><button onclick="openModal('${product.id}')" class="flex-1 bg-gray-900 text-white text-xs font-bold uppercase tracking-wide py-2 rounded hover:bg-gray-700 transition-colors">Manage</button><button onclick="confirmSingleSold('${product.id}')" ${soldBtnDisabled} class="bg-red-600 text-white text-xs font-bold uppercase tracking-wide px-3 py-2 rounded transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"><i class="fa-solid fa-bolt"></i> Sold</button></div></div></div>`;
+                grid.appendChild(card);
+            });
+            if (hasMoreProducts) { loadMoreBtn.classList.remove('hidden'); } else { loadMoreBtn.classList.add('hidden'); }
+        }
+
+        function getProductStatus(product) {
+            const status = product.status ? product.status.toUpperCase() : 'DRAFT';
+            let totalDisplayStock = 0;
+            product.variants.forEach(v => { if (currentStore === 'admin') { totalDisplayStock += (v.actualShopifyStock || 0); } else { totalDisplayStock += (v.inventory && v.inventory[currentStore] ? v.inventory[currentStore] : 0); } });
+            const colorClass = status === 'ACTIVE' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200';
+            return { totalStock: totalDisplayStock, status, colorClass };
+        }
+        
+        function openModal(productId) {
+            const product = products.find(p => p.id == productId);
+            if (!product) return;
+            currentEditingProductId = productId;
+            document.getElementById('modalProductName').innerText = product.title;
+            document.getElementById('modalStoreName').innerText = currentStore;
+            const container = document.getElementById('modalVariantsContainer');
+            container.innerHTML = '';
+            
+            product.variants.forEach((variant, index) => {
+                const currentStock = variant.inventory[currentStore] || 0;
+                let stockDisplayHtml = '';
+                let stockLabelHtml = '';
+
+                if (currentStore === 'admin') {
+                    // For admin, left side will be empty, right side will show dynamic label
+                    stockDisplayHtml = ''; 
+                    
+                    const mainStock = variant.actualShopifyStock || 0;
+                    if (mainStock > 0) {
+                        stockLabelHtml = `<span class="text-[9px] text-green-600 font-bold uppercase tracking-wider"><i class="fa-solid fa-box mr-1"></i>Main Stock</span>`;
+                    } else {
+                        stockLabelHtml = `<span class="text-[9px] text-red-500 font-bold uppercase tracking-wider"><i class="fa-solid fa-box-open mr-1"></i>Main Stock</span>`;
+                    }
+                } else {
+                    // For store user, location on left and static label on right
+                    let stockLocation = [];
+                    if ((variant.inventory.dhanmondi || 0) > 0) stockLocation.push("Dhanmondi");
+                    if ((variant.inventory.banani || 0) > 0) stockLocation.push("Banani");
+                    if ((variant.inventory.uttara || 0) > 0) stockLocation.push("Uttara");
+                    stockDisplayHtml = stockLocation.length > 0 ? `<p class="text-[9px] text-green-600 font-bold mt-0.5 uppercase tracking-tight"><i class="fa-solid fa-location-dot mr-1"></i>${stockLocation.join(', ')}</p>` : `<p class="text-[9px] text-gray-400 mt-0.5">No stock in branches</p>`;
+                    
+                    stockLabelHtml = `<span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">My Store Qty</span>`;
+                }
+
+                let adminFixHtml = '';
+                if (currentStore === 'admin') {
+                    adminFixHtml = `
+                    <div class="mt-2 pt-2 border-t border-gray-100">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-[9px] text-gray-400 font-bold uppercase">Branch Corrections</p>
+                            <button onclick="saveInventoryChanges('reset_all', '${variant.id}')" class="bg-red-100 hover:bg-red-600 hover:text-white text-red-600 text-[9px] px-2 py-1 rounded transition-colors font-bold uppercase tracking-wider">
+                                <i class="fa-solid fa-trash-can mr-1"></i> Reset All to 0
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            ${['dhanmondi', 'banani', 'uttara'].map(store => {
+                                const fullStoreName = store.charAt(0).toUpperCase() + store.slice(1);
+                                const storeQty = variant.inventory[store] || 0;
+                                const labelClass = storeQty > 0 ? 'text-[9px] text-green-600 font-bold tracking-tight' : 'text-[8px] text-gray-500';
+                                const iconHtml = storeQty > 0 ? '<i class="fa-solid fa-location-dot mr-1"></i>' : '';
+                                return `
+                                <div class="flex flex-col">
+                                    <label class="uppercase mb-0.5 ${labelClass}">${iconHtml}${fullStoreName}</label>
+                                    <div class="flex items-center gap-1">
+                                        <input type="number" id="fix-${store}-${variant.id}" value="${storeQty}" min="0" oninput="if(this.value !== '' && this.value < 0) this.value = 0;" onblur="if(this.value === '' || this.value < 0) this.value = 0;" class="w-full text-xs border border-gray-200 rounded p-1 text-center bg-gray-50 focus:bg-white">
+                                        <button onclick="saveInventoryChanges('branch', '${variant.id}', '${store}')" class="text-[10px] bg-gray-200 hover:bg-black hover:text-white rounded px-1.5 py-1 transition-colors"><i class="fa-solid fa-check"></i></button>
+                                    </div>
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>`;
+                }
+
+                let variantDisplayPrice = variant.price !== 'N/A' ? Math.round(parseFloat(variant.price)) : 'N/A';
+                
+                let priceHtml = `<span class="text-[9px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-200">${variantDisplayPrice !== 'N/A' ? 'Price: ' + variantDisplayPrice : ''}</span>`;
+                let skuHtml = `<p class="text-[10px] text-gray-400 font-mono truncate">${variant.sku}</p>`;
+                let applyAllHtml = '';
+
+                if (currentStore === 'admin') {
+                    priceHtml = `<div class="flex items-center gap-1"><span class="text-[9px] font-bold text-green-700">Price:</span><input type="number" id="price-${variant.id}" value="${variantDisplayPrice !== 'N/A' ? variantDisplayPrice : ''}" class="w-16 text-xs border border-green-300 rounded px-1 py-0.5 text-green-700 font-bold focus:outline-none focus:ring-1 focus:ring-green-500 bg-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"></div>`;
+                    skuHtml = `<div class="flex items-center gap-1 mt-1"><span class="text-[9px] text-gray-400 font-bold">SKU:</span><input type="text" id="sku-${variant.id}" value="${variant.sku}" class="w-full max-w-[120px] text-[10px] font-mono border border-gray-300 rounded px-1 py-0.5 text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"></div>`;
+                    
+                    // Show "Apply to All" ONLY on the first variant
+                    if (index === 0) {
+                        applyAllHtml = `<button onclick="applyToAllVariants('${variant.id}')" class="mt-1 text-[9px] bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-0.5 rounded border border-blue-200 transition-colors flex items-center gap-1"><i class="fa-solid fa-copy"></i> Apply to All</button>`;
+                    }
+                }
+
+                const div = document.createElement('div');
+                div.className = 'bg-gray-50 p-3 rounded-lg border border-gray-100 mb-3 last:mb-0';
+                div.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1 min-w-0 pr-2">
+                            <div class="flex items-center gap-2">
+                                <p class="font-semibold text-gray-700 text-xs truncate">${variant.title}</p>
+                                ${priceHtml}
+                            </div>
+                            ${skuHtml}
+                            ${applyAllHtml}
+                            ${stockDisplayHtml}
+                        </div>
+                        <div class="flex flex-col items-end gap-1">
+                            ${stockLabelHtml}
+                            <div class="flex items-center gap-2">
+                                <button onclick="adjustInput('input-${variant.id}', -1)" class="w-7 h-7 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 text-gray-600"><i class="fa-solid fa-minus text-[10px]"></i></button>
+                                <input type="number" id="input-${variant.id}" value="${currentStock}" min="0" oninput="if(this.value !== '' && this.value < 0) this.value = 0;" onblur="if(this.value === '' || this.value < 0) this.value = 0;" class="main-input w-12 text-center font-bold text-gray-800 bg-white border border-gray-300 rounded py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none" data-variant-id="${variant.id}" data-inventory-item-id="${variant.inventoryItemId}">
+                                <button onclick="adjustInput('input-${variant.id}', 1)" class="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center hover:bg-gray-800"><i class="fa-solid fa-plus text-[10px]"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    ${adminFixHtml}
+                `;
+                container.appendChild(div);
+            });
+            document.getElementById('variantModal').classList.remove('hidden');
+        }
+
+        function applyToAllVariants(sourceVariantId) {
+            const sourcePrice = document.getElementById(`price-${sourceVariantId}`).value;
+            const sourceSku = document.getElementById(`sku-${sourceVariantId}`).value;
+            
+            const allPriceInputs = document.querySelectorAll('input[id^="price-"]');
+            const allSkuInputs = document.querySelectorAll('input[id^="sku-"]');
+            
+            allPriceInputs.forEach(input => input.value = sourcePrice);
+            allSkuInputs.forEach(input => input.value = sourceSku);
+            
+            showToast("Applied to all variants");
+        }
+
+        function adjustInput(inputId, amount) { const input = document.getElementById(inputId); let val = parseInt(input.value) || 0; val += amount; if (val < 0) val = 0; input.value = val; }
+        function closeModal() { document.getElementById('variantModal').classList.add('hidden'); currentEditingProductId = null; }
+        function openImagePreview(src, title) { const m = document.getElementById('imagePreviewModal'); document.getElementById('previewImage').src = src; document.getElementById('previewTitle').innerText = title; m.classList.remove('hidden'); setTimeout(() => m.classList.remove('opacity-0'), 10); }
+        function closeImagePreview(e, force) { if (force || !e || e.target?.id === 'imagePreviewModal' || e.target?.tagName !== 'IMG') { const m = document.getElementById('imagePreviewModal'); m.classList.add('opacity-0'); setTimeout(() => m.classList.add('hidden'), 300); } }
+        function showToast(msg, isError = false) { 
+            const t = document.getElementById('toast'); 
+            const icon = t.querySelector('i');
+            if (isError) {
+                t.classList.replace('bg-gray-800', 'bg-red-600');
+                icon.className = 'fa-solid fa-circle-exclamation text-white';
+            } else {
+                t.classList.replace('bg-red-600', 'bg-gray-800');
+                icon.className = 'fa-solid fa-circle-check text-green-400';
+            }
+            document.getElementById('toastMsg').innerText = msg; 
+            t.classList.remove('translate-y-20', 'opacity-0'); 
+            setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000); 
+        }
+        
+        function searchProductById(productId) {
+            clearFilters();
+            document.getElementById('searchInput').value = productId;
+            triggerSearchProcess();
+        }
+
+        // 1. No auto-search on normal typing, saves API calls
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            // Auto search is off on typing, user will click button or press enter
+        });
+
+        // 2. Barcode scanner automatically presses 'Enter', catch that
+        document.getElementById('searchInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                triggerSearchProcess(); // Auto search if scanned from scanner
+            }
+        });
+
+        // 3. This function runs when Search Button is clicked or Scanner scans
+        function triggerSearchProcess() {
+            let val = document.getElementById('searchInput').value.trim();
+            if (!val) return;
+
+            // Check if "Auto" checkbox is ticked
+            const isAutoTrimEnabled = document.getElementById('autoTrimCheck').checked;
+
+            // User idea: If Auto is ticked and length is greater than 7, then trim
+            if (isAutoTrimEnabled && val.length > 7) {
+                val = val.substring(0, val.length - 4);
+                document.getElementById('searchInput').value = val; // Show updated value in the box
+            }
+
+            // Trigger search and retain dropdown filter if any
+            lastCursor = null; 
+            performSearch(val, selectedCollectionId);
+        }
+
+        // --- BULK ACTION HELPERS ---
+        function updateBulkCount() {
+            const count = document.querySelectorAll('.bulk-check:checked').length;
+            document.getElementById('selectedCount').innerText = count;
+            document.getElementById('zeroDraftBtn').disabled = count === 0;
+        }
+
+        function selectAllActive() {
+            const checkboxes = document.querySelectorAll('.bulk-check');
+            let count = 0;
+            checkboxes.forEach(box => {
+                if (box.getAttribute('data-status') === 'ACTIVE') {
+                    box.checked = true;
+                    count++;
+                }
+            });
+            updateBulkCount();
+            showToast(`${count} Active Products Selected`);
+        }
+
+        function selectAllMainStock() {
+            const checkboxes = document.querySelectorAll('.bulk-check');
+            let count = 0;
+            checkboxes.forEach(box => {
+                if (parseInt(box.getAttribute('data-main-stock')) > 0) {
+                    box.checked = true;
+                    count++;
+                }
+            });
+            updateBulkCount();
+            showToast(`${count} Main Stock Products Selected`);
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.bulk-check').forEach(box => box.checked = false);
+            updateBulkCount();
+            showToast("Selection Cleared");
+        }
+
+        let pendingZeroProductId = null;
+
+        function closeConfirmModal() {
+            document.getElementById('confirmationModal').classList.add('hidden');
+            pendingZeroProductId = null;
+        }
+
+        function executeBulkZero() {
+            const checkboxes = document.querySelectorAll('.bulk-check:checked');
+            if (checkboxes.length === 0) return;
+
+            let msg = `You are about to Zero <b>${checkboxes.length} products</b>.<br>`;
+            if (currentStore === 'admin') {
+                msg += `
+                <div class="text-left mb-4 mt-3 border border-gray-200 p-3 rounded bg-gray-50">
+                    <label class="flex items-center gap-2 cursor-pointer mb-2">
+                        <input type="radio" name="soldOutOption" value="main" checked class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="text-sm font-bold text-gray-700">Zero MAIN Location Only</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="soldOutOption" value="all" class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
+                        <span class="text-sm font-bold text-gray-700">Zero ALL Locations & Draft</span>
+                    </label>
+                </div>`;
+            }
+            document.getElementById('confirmMsg').innerHTML = msg;
+            document.getElementById('confirmationModal').classList.remove('hidden');
+        }
+
+        function markAllNotificationsRead() {
+            if (currentStore !== 'admin') return;
+            
+            const list = document.getElementById('adminNotificationList');
+            const unreadElements = list.querySelectorAll('.notif-item');
+            if (unreadElements.length === 0) return;
+            
+            const nowTimestamp = Date.now();
+            currentReadData.lastRead = nowTimestamp;
+            currentReadData.reads = [];
+
+            fetch(WEB_APP_URL, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify({ action: 'markRead', store: currentStore, timestamp: nowTimestamp })
+            });
+            
+            localStorage.removeItem('readNotifs_' + currentStore);
+            
+            // Clear UI
+            list.innerHTML = '<div class="p-4 text-center text-xs text-gray-400">No recent updates</div>';
+            document.getElementById('adminBellDot').style.display = 'none';
+            document.getElementById('markAllReadBtn').classList.add('hidden');
+        }
+
+        function confirmSingleSold(productId) {
+            pendingZeroProductId = productId;
+            let msg = '';
+            
+            if (currentStore === 'admin') {
+                msg = `
+                <div class="text-left mb-4">
+                    <label class="flex items-center gap-2 cursor-pointer mb-2">
+                        <input type="radio" name="soldOutOption" value="main" checked class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                        <span class="text-sm font-bold text-gray-700">SOLD OUT Main Location Only</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="soldOutOption" value="all" class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500">
+                        <span class="text-sm font-bold text-gray-700">Are You sure SOLD OUT All Location?</span>
+                    </label>
+                </div>`;
+            } else {
+                msg = `Are You Sure <b>SOLD OUT</b> In your Store?<br>`;
+            }
+            
+            document.getElementById('confirmMsg').innerHTML = msg;
+            document.getElementById('confirmationModal').classList.remove('hidden');
+        }
+
+        async function finalizeBulkZero() {
+            const isSingleSold = !!pendingZeroProductId;
+            
+            const confirmBtn = document.getElementById('confirmYesBtn');
+            const originalConfirmText = confirmBtn ? confirmBtn.innerHTML : 'Yes, Confirm';
+            if (confirmBtn) {
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
+            }
+
+            const bulkBtn = document.getElementById('zeroDraftBtn');
+            const originalBulkText = bulkBtn ? bulkBtn.innerHTML : '';
+            if (bulkBtn && !isSingleSold) {
+                bulkBtn.disabled = true;
+                bulkBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
+            }
+
+            let itemsToUpdate = [];
+
+            if (isSingleSold) {
+                const product = products.find(p => p.id == pendingZeroProductId);
+                if (product) {
+                    product.variants.forEach(v => {
+                        itemsToUpdate.push({
+                            productId: product.id,
+                            variantId: v.id,
+                            inventoryItemId: v.inventoryItemId,
+                            sku: v.sku
+                        });
+                    });
+                }
+            } else {
+                const checkboxes = document.querySelectorAll('.bulk-check:checked');
+                if (checkboxes.length === 0) {
+                    closeConfirmModal();
+                    return;
+                }
+
+                for (const box of checkboxes) {
+                    const productId = box.getAttribute('data-id');
+                    const product = products.find(p => p.id == productId);
+                    
+                    if (product) {
+                        product.variants.forEach(v => {
+                            itemsToUpdate.push({
+                                productId: product.id,
+                                variantId: v.id,
+                                inventoryItemId: v.inventoryItemId,
+                                sku: v.sku
+                            });
+                        });
+                    }
+                }
+            }
+
+            if (itemsToUpdate.length > 0) {
+                let selectedTarget = 'all';
+                if (currentStore === 'admin') {
+                    const radio = document.querySelector('input[name="soldOutOption"]:checked');
+                    if (radio) selectedTarget = radio.value;
+                }
+
+                try {
+                    const response = await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        },
+                        body: JSON.stringify({
+                            action: 'bulkZeroInventory',
+                            store: currentStore,
+                            targetLocation: selectedTarget,
+                            items: itemsToUpdate
+                        })
+                    });
+                    
+                    if (!response.ok) throw new Error("Network/Server Error: " + response.status);
+                    const result = await response.json();
+
+                    if (result.status === 'success') {
+                        closeConfirmModal();
+                        showToast(`Sold Out Update Successful`);
+                        
+                        // Locally update the inventory to 0 to avoid reload/jumping
+                        itemsToUpdate.forEach(item => {
+                            const product = products.find(p => p.id == item.productId);
+                            if (product) {
+                                // Update product status to DRAFT so it reflects in real-time UI
+                                product.status = 'DRAFT'; 
+                                
+                                const variant = product.variants.find(v => v.id == item.variantId);
+                                if (variant) {
+                                    if (currentStore === 'admin') {
+                                        if (selectedTarget === 'main') {
+                                            variant.actualShopifyStock = 0;
+                                            variant.inventory.admin = 0;
+                                            product.status = 'ACTIVE';
+                                        } else {
+                                            variant.actualShopifyStock = 0;
+                                            variant.inventory.admin = 0;
+                                            variant.inventory.dhanmondi = 0;
+                                            variant.inventory.banani = 0;
+                                            variant.inventory.uttara = 0;
+                                        }
+                                    } else {
+                                        variant.inventory[currentStore] = 0;
+                                        variant.actualShopifyStock = 0;
+                                        variant.inventory.admin = 0;
+                                    }
+                                }
+                            }
+                        });
+                        
+                        // Re-render the grid without losing scroll position
+                        renderProducts();
+                    } else {
+                        throw new Error(result.message || 'Bulk update failed');
+                    }
+                } catch (e) { 
+                    console.error(e); 
+                    closeConfirmModal();
+                    const errorMsgEl = document.getElementById('errorModalMsg');
+                    if(errorMsgEl) errorMsgEl.innerText = e.message;
+                    document.getElementById('errorModal').classList.remove('hidden');
+                }
+            } else {
+                closeConfirmModal();
+            }
+
+            if (confirmBtn) {
+                confirmBtn.innerHTML = originalConfirmText;
+                confirmBtn.disabled = false;
+            }
+            if (bulkBtn && !isSingleSold) {
+                bulkBtn.innerHTML = originalBulkText;
+                bulkBtn.disabled = false;
+            }
+        }
+
+        // ==========================================
+        // POS SYNC FUNCTIONS
+        // ==========================================
+        function getOperatingStore() {
+            const selectedCode = document.getElementById('posStoreCode').value;
+            return currentUser === 'admin' ? REVERSE_STORE_MAP[selectedCode] : currentUser;
+        }
+
+        function showCustomAlert(message) {
+            const alertBox = document.getElementById('customAlert');
+            document.getElementById('customAlertMessage').innerText = message;
+            alertBox.classList.remove('hidden');
+            setTimeout(() => alertBox.classList.remove('opacity-0'), 10);
+            setTimeout(hideCustomAlert, 3000); // Auto hide after 3 seconds
+        }
+
+        function hideCustomAlert() {
+            const alertBox = document.getElementById('customAlert');
+            alertBox.classList.add('opacity-0');
+            setTimeout(() => alertBox.classList.add('hidden'), 300);
+        }
+
+        function posFormatDate(d) {
+            const date = new Date(d);
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            return `${String(date.getDate()).padStart(2, '0')}-${months[date.getMonth()]}-${date.getFullYear()}`;
+        }
+
+        async function fetchPosSalesData() {
+            const storeCode = document.getElementById('posStoreCode').value;
+            if (!storeCode) {
+                showCustomAlert("Please choose a store location first.");
+                return;
+            }
+
+            document.getElementById('posLoadingMsg').classList.remove('hidden');
+            document.getElementById('posInvoiceContainer').innerHTML = '';
+
+            try {
+                const syncRes = await fetch(`${API_URL}/get-synced-data`, { method: 'POST', headers: { 'Content-Type': 'application/json' }});
+                const syncData = await syncRes.json();
+                posSyncedMemory = syncData.syncedItems || [];
+
+                const payload = {
+                    storeCode: document.getElementById('posStoreCode').value,
+                    fromDate: posFormatDate(document.getElementById('posFromDate').value),
+                    endDate: posFormatDate(document.getElementById('posEndDate').value)
+                };
+                const response = await fetch(`${API_URL}/pos-sales`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
+                const resData = await response.json();
+                
+                document.getElementById('posLoadingMsg').classList.add('hidden');
+                
+                const getReportBtn = document.getElementById('getReportBtn');
+                if (getReportBtn) {
+                    getReportBtn.innerHTML = `<i class="fa-solid fa-rotate mr-1"></i> Reload Report`;
+                }
+
+                if (resData.status === 'success' && resData.data.length > 0) {
+                    let html = "";
+                    resData.data.forEach((item, index) => {
+                        const invId = `invoice-${index}`;
+                        
+                        let skuRows = item.barcodes.map((sku, skuIndex) => {
+                            const posInv = String(item.invoiceNo).replace(/^0+/, '');
+                            const uniqueKey = `${posInv}_${sku}`;
+                            
+                            // Checking data from the object received from backend
+                            const syncStatus = posSyncedMemory[uniqueKey]; 
+                            
+                            if (syncStatus) {
+                                return `
+                                <div class="flex justify-between items-center bg-green-50 p-2 rounded border border-green-200 mb-2 sku-row">
+                                    <span class="font-mono text-sm font-bold text-green-700 bg-white px-2 py-1 rounded shadow-sm">${sku}</span>
+                                    <span class="text-green-600 text-xs font-bold px-3 py-1.5 uppercase tracking-wide"><i class="fa-solid fa-check-circle mr-1"></i> Updated</span>
+                                </div>`;
+                            }
+                            
+                            return `
+                            <div class="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-100 mb-2 sku-row" id="${invId}-sku-${skuIndex}">
+                                <span class="font-mono text-sm font-bold text-gray-700 bg-white px-2 py-1 rounded shadow-sm">${sku}</span>
+                                <button onclick="showPosProducts('${sku}', '${invId}', '${invId}-sku-${skuIndex}', '${item.invoiceNo}')" class="bg-black hover:bg-gray-800 text-white text-xs font-bold px-3 py-1.5 rounded transition">
+                                    <i class="fa-regular fa-eye mr-1"></i> SHOW
+                                </button>
+                            </div>`;
+                        }).join('');
+
+                        if (item.barcodes.length > 0) {
+                            html += `
+                            <div id="${invId}" class="invoice-card bg-white p-5 rounded-lg shadow-sm border border-gray-200 flex flex-col md:flex-row gap-4">
+                                <div class="md:w-1/4">
+                                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Invoice No</div>
+                                    <div class="text-lg font-bold text-red-600">${item.invoiceNo}</div>
+                                </div>
+                                <div class="md:w-3/4 w-full">
+                                    <div class="invoice-skus" data-total="${item.barcodes.length}" data-synced="0">
+                                        ${skuRows}
+                                    </div>
+                                </div>
+                            </div>`;
+                        }
+                    });
+                    document.getElementById('posInvoiceContainer').innerHTML = html || '<div class="text-center py-10 text-gray-500">No data found.</div>';
+                } else {
+                    document.getElementById('posInvoiceContainer').innerHTML = '<div class="text-center py-10 text-gray-500">No POS sales data found for this date.</div>';
+                }
+            } catch (e) {
+                document.getElementById('posLoadingMsg').classList.add('hidden');
+                alert("Error fetching data: Backend is not responding or Render Server is waking up (takes 1-2 minutes). Please try again.");
+                console.error(e);
+            }
+        }
+
+        async function showPosProducts(sku, invoiceDivId, rowId, invoiceNo) {
+            posActiveInvoice = { invoiceDivId, rowId, invoiceNo, sku };
+            document.getElementById('posModalSkuTitle').innerText = sku;
+            const container = document.getElementById('posModalProducts');
+            container.innerHTML = '<div class="col-span-4 text-center py-10"><div class="loader loader-small mb-2"></div><p class="text-xs">Fetching Real Shopify Data...</p></div>';
+            document.getElementById('posProductModal').classList.remove('hidden');
+
+            try {
+                const response = await fetch(`${API_URL}/search-shopify`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sku: sku })
+                });
+                const data = await response.json();
+
+                // Fetch vendor from the main inventory API as a reliable fallback
+                let fetchedVendor = 'No Vendor';
+                try {
+                    const webRes = await fetch(`${WEB_APP_URL}?action=searchProducts&query=${encodeURIComponent(sku)}&sortKey=CREATED_AT&reverse=true`, {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+                    });
+                    const webData = await webRes.json();
+                    if (webData.status === 'success' && webData.products && webData.products.length > 0) {
+                        const matchedProd = webData.products.find(p => p.variants && p.variants.some(v => v.sku === sku));
+                        if (matchedProd && matchedProd.vendor) {
+                            fetchedVendor = matchedProd.vendor;
+                        } else if (webData.products[0].vendor) {
+                            fetchedVendor = webData.products[0].vendor;
+                        }
+                    }
+                } catch(err) {
+                    console.error("Vendor fallback fetch failed", err);
+                }
+
+                if (data.status === 'success') {
+                    if (data.products.length > 0) {
+                        let matchingVariants = [];
+                        data.products.forEach(p => {
+                            p.variants.forEach(v => {
+                                if (v.sku && v.sku.includes(sku)) {
+                                    const operatingStore = getOperatingStore();
+                                    let stock = v.inventory[operatingStore] || 0;
+                                    
+                                    let vendorName = p.vendor;
+                                    if (!vendorName || vendorName === 'No Vendor') {
+                                        const localProduct = products.find(prod => prod.id == p.id || prod.variants.some(vari => vari.sku === v.sku));
+                                        vendorName = localProduct && localProduct.vendor ? localProduct.vendor : fetchedVendor;
+                                    }
+
+                                    matchingVariants.push({
+                                        p_id: p.id,
+                                        v_id: v.id,
+                                        inventoryItemId: v.inventoryItemId,
+                                        image: p.image,
+                                        p_title: p.title,
+                                        v_title: v.title,
+                                        sku: v.sku,
+                                        vendor: vendorName,
+                                        stock: stock,
+                                        fullInventory: v.inventory // Added to get stock of other stores
+                                    });
+                                }
+                            });
+                        });
+
+                        if (matchingVariants.length > 0) {
+                            matchingVariants.sort((a, b) => {
+                                const aIsOut = a.stock <= 0;
+                                const bIsOut = b.stock <= 0;
+                                if (aIsOut === bIsOut) return 0;
+                                return aIsOut ? 1 : -1;
+                            });
+
+                            let html = '';
+                            matchingVariants.forEach(item => {
+                                const isOut = item.stock <= 0;
+                                const btnHtml = isOut 
+                                    ? `<div class="text-center text-red-500 font-bold text-sm py-2 bg-red-50 rounded">SOLD OUT</div>`
+                                    : `<button id="btnPos-${item.v_id}" onclick="processPosSale('${item.p_id}', '${item.v_id}', ${item.stock}, '${item.inventoryItemId}')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded text-xs transition shadow-sm"><i class="fa-solid fa-cart-arrow-down mr-1"></i> SALE</button>`;
+
+                                // 🟢 Logic to find stock of other stores 🟢
+                                let otherLocations = [];
+                                const operatingStore = getOperatingStore();
+                                for (const [loc, qty] of Object.entries(item.fullInventory)) {
+                                    if (loc !== operatingStore && qty > 0) {
+                                        let locName = loc === 'admin' ? 'Admin' : loc.charAt(0).toUpperCase() + loc.slice(1);
+                                        otherLocations.push(`${locName} (${qty})`);
+                                    }
+                                }
+                                
+                                let otherStockHtml = otherLocations.length > 0 
+                                    ? `<div class="text-[10px] text-blue-600 font-bold mb-1 leading-tight">Also in: ${otherLocations.join(', ')}</div>` 
+                                    : `<div class="text-[10px] text-gray-400 mb-1 leading-tight">No stock in other branches</div>`;
+
+                                html += `
+                                <div class="bg-white rounded-lg p-2 shadow-sm border border-gray-200 flex flex-col">
+                                    <div class="w-full relative overflow-hidden rounded mb-2 cursor-pointer group" style="aspect-ratio: 2/3;" onclick="openImagePreview('${item.image}', '${item.p_title.replace(/'/g, "\\'")}')">
+                                        <img src="${item.image}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="this.src='https://via.placeholder.com/300x450?text=No+Image'">
+                                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                                            <i class="fa-solid fa-expand text-white opacity-0 group-hover:opacity-100 text-3xl drop-shadow-md"></i>
+                                        </div>
+                                    </div>
+                                    <h4 class="text-xs font-bold text-gray-800 mb-1 line-clamp-2">${item.p_title} - ${item.v_title}</h4>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="text-[10px] text-blue-600 font-mono font-bold cursor-pointer hover:underline" onclick="event.stopPropagation(); openGlobalStockPopup('${item.sku}')" title="Click to view global stock">${item.sku}</span>
+                                        <span class="text-[10px] text-gray-500 font-bold">${item.vendor}</span>
+                                    </div>
+                                    <div class="border-t border-gray-100 pt-1 flex flex-col mb-2">
+                                        ${otherStockHtml}
+                                        <div class="text-[11px] text-gray-600 font-medium mt-1">
+                                            Loc: <span class="font-bold text-gray-800">${operatingStore.toUpperCase()}</span> | Stock: <span class="font-bold text-lg ${isOut ? 'text-red-500' : 'text-green-600'}">${item.stock}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-auto">${btnHtml}</div>
+                                </div>`;
+                            });
+                            container.innerHTML = html;
+                        } else {
+                            container.innerHTML = '<p class="col-span-4 text-center text-red-500">Variant Match Not Found for this SKU.</p>';
+                        }
+                    } else {
+                        container.innerHTML = '<p class="col-span-4 text-center text-red-500">Product Not Found in Shopify (0 Results).</p>';
+                    }
+                } else {
+                    container.innerHTML = `<p class="col-span-4 text-center text-red-500 font-bold">API Error: ${data.message}</p>`;
+                }
+            } catch(e) {
+                container.innerHTML = '<p class="col-span-4 text-center text-red-500">Failed to load API data. Check terminal for errors.</p>';
+            }
+        }
+
+        async function processPosSale(productId, variantId, currentStock, inventoryItemId) {
+            const btn = document.getElementById(`btnPos-${variantId}`);
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
+            btn.disabled = true;
+            btn.classList.replace('bg-green-600', 'bg-gray-400');
+
+            try {
+                const operatingStore = getOperatingStore();
+                const payload = {
+                    variantId: variantId, inventoryItemId: inventoryItemId, store: operatingStore, currentQty: currentStock
+                };
+
+                const res = await fetch(`${API_URL}/update-inventory`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    const operatingStore = getOperatingStore();
+                    const logReq = await fetch(`${API_URL}/log-sync`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ store: operatingStore, invoiceNo: posActiveInvoice.invoiceNo, sku: posActiveInvoice.sku })
+                    });
+                    const logData = await logReq.json();
+
+                    if (logData.status === 'error') {
+                        console.error("Google Sheet Error:", logData.message);
+                        alert("Shopify updated, but not saved in Sheet! Error: " + logData.message);
+                    }
+
+                    btn.innerHTML = `<i class="fa-solid fa-check"></i> DONE`;
+                    btn.classList.replace('bg-gray-400', 'bg-black');
+                    
+                    setTimeout(() => {
+                        closePosModal();
+                        markPosSkuAsSynced();
+                    }, 800);
+                } else { throw new Error("Update Failed"); }
+            } catch (e) {
+                btn.innerHTML = `Failed! Retry`;
+                btn.disabled = false;
+                btn.classList.replace('bg-gray-400', 'bg-red-600');
+            }
+        }
+
+        function markPosSkuAsSynced() {
+            if(!posActiveInvoice) return;
+            const { invoiceDivId, rowId, sku } = posActiveInvoice;
+            
+            const row = document.getElementById(rowId);
+            row.innerHTML = `
+                <span class="font-mono text-sm font-bold text-green-700 bg-white px-2 py-1 rounded shadow-sm">${sku}</span>
+                <span class="text-green-600 text-xs font-bold px-3 py-1.5 uppercase tracking-wide"><i class="fa-solid fa-check-circle mr-1"></i> Updated</span>
+            `;
+            row.classList.remove('bg-gray-50', 'border-gray-100');
+            row.classList.add('bg-green-50', 'border-green-200');
+
+            const invoiceDiv = document.getElementById(invoiceDivId);
+            const skuContainer = invoiceDiv.querySelector('.invoice-skus');
+            let syncedCount = parseInt(skuContainer.getAttribute('data-synced')) + 1;
+            
+            skuContainer.setAttribute('data-synced', syncedCount);
+        }
+
+        function closePosModal() { document.getElementById('posProductModal').classList.add('hidden'); }
+
+        // --- ALL IMAGES & DOWNLOAD LOGIC ---
+        let selectedImagesToDownload = [];
+
+        function openAllImagesModal(productId) {
+            const product = products.find(p => p.id == productId);
+            if (!product || !product.images || product.images.length === 0) {
+                showToast('No extra images found', true);
+                return;
+            }
+            
+            selectedImagesToDownload = [];
+            const container = document.getElementById('allImagesContainer');
+            container.innerHTML = '';
+            
+            product.images.forEach((url, idx) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'relative cursor-pointer border-2 border-transparent rounded overflow-hidden hover:border-blue-300 transition-all bg-gray-100';
+                wrapper.style.aspectRatio = '2/3';
+                wrapper.onclick = () => toggleImageSelection(url, wrapper);
+                
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'w-full h-full object-cover';
+                
+                const check = document.createElement('div');
+                check.className = 'absolute top-2 right-2 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center opacity-0 transition-opacity z-10 shadow-sm';
+                check.innerHTML = '<i class="fa-solid fa-check text-[10px]"></i>';
+
+                const viewBtn = document.createElement('button');
+                viewBtn.className = 'absolute bottom-2 left-2 right-2 bg-black/60 hover:bg-black/90 text-white text-[10px] font-bold py-1.5 rounded transition-colors z-20 backdrop-blur-sm flex items-center justify-center';
+                viewBtn.innerHTML = '<i class="fa-regular fa-eye mr-1"></i> VIEW';
+                viewBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    openImagePreview(url, product.title.replace(/'/g, "\\'"));
+                };
+                
+                wrapper.appendChild(img);
+                wrapper.appendChild(check);
+                wrapper.appendChild(viewBtn);
+                wrapper.dataset.url = url;
+                container.appendChild(wrapper);
+            });
+            
+            updateDownloadBtn();
+            document.getElementById('allImagesModal').classList.remove('hidden');
+        }
+
+        function toggleImageSelection(url, element) {
+            const index = selectedImagesToDownload.indexOf(url);
+            const check = element.querySelector('div.absolute');
+            if (index > -1) {
+                selectedImagesToDownload.splice(index, 1);
+                element.classList.remove('border-blue-600');
+                element.classList.add('border-transparent');
+                check.classList.add('opacity-0');
+            } else {
+                selectedImagesToDownload.push(url);
+                element.classList.remove('border-transparent');
+                element.classList.add('border-blue-600');
+                check.classList.remove('opacity-0');
+            }
+            updateDownloadBtn();
+        }
+
+        function selectAllImages() {
+            const wrappers = document.querySelectorAll('#allImagesContainer > div');
+            let allSelected = selectedImagesToDownload.length === wrappers.length;
+            
+            selectedImagesToDownload = [];
+            
+            wrappers.forEach(wrapper => {
+                const url = wrapper.dataset.url;
+                const check = wrapper.querySelector('div.absolute');
+                if (!allSelected) {
+                    selectedImagesToDownload.push(url);
+                    wrapper.classList.remove('border-transparent');
+                    wrapper.classList.add('border-blue-600');
+                    check.classList.remove('opacity-0');
+                } else {
+                    wrapper.classList.remove('border-blue-600');
+                    wrapper.classList.add('border-transparent');
+                    check.classList.add('opacity-0');
+                }
+            });
+            updateDownloadBtn();
+        }
+
+        function updateDownloadBtn() {
+            const btn = document.getElementById('downloadImagesBtn');
+            if (selectedImagesToDownload.length > 0) {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-download mr-1"></i> Download (${selectedImagesToDownload.length})`;
+            } else {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-download mr-1"></i> Download`;
+            }
+        }
+
+        function closeAllImagesModal() {
+            document.getElementById('allImagesModal').classList.add('hidden');
+            selectedImagesToDownload = [];
+        }
+
+        async function downloadSelectedImages() {
+            if (selectedImagesToDownload.length === 0) return;
+            const btn = document.getElementById('downloadImagesBtn');
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Processing...`;
+            btn.disabled = true;
+
+            for (let i = 0; i < selectedImagesToDownload.length; i++) {
+                const url = selectedImagesToDownload[i];
+                try {
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    const objectUrl = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = objectUrl;
+                    const fileName = url.split('/').pop().split('?')[0] || `product_image_${i+1}.jpg`;
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(objectUrl);
+                } catch (error) {
+                    // Fallback to direct tab opening if browser strictly blocks CORS downloads from Shopify CDN
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = '';
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+                // Minor delay to prevent browser crash/blocking on multiple loops
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            
+            closeAllImagesModal();
+        }
+
+        const globalStockStores = [
+            {code: "100010001", name: "PFF PREMIUM_WH"},
+            {code: "100010004", name: "E-STORE"},
+            {code: "100010003", name: "BANANI"},
+            {code: "100010002", name: "DHANMONDI"},
+            {code: "100010006", name: "Uttara"}
+        ];
+
+        function closeGlobalStockPopup() {
+            document.getElementById('globalStockModal').classList.add('hidden');
+        }
+
+        async function openGlobalStockPopup(sku) {
+            if (!sku || sku === 'N/A') {
+                showToast("Invalid SKU", true);
+                return;
+            }
+            
+            const modal = document.getElementById('globalStockModal');
+            const content = document.getElementById('globalStockContent');
+            const title = document.getElementById('globalStockTitle');
+            
+            title.innerText = `SKU: ${sku}`;
+            content.innerHTML = '<div class="text-center py-6"><div class="loader loader-small mb-2"></div><p class="text-xs text-gray-500 font-bold">Fetching Stock...</p></div>';
+            modal.classList.remove('hidden');
+
+            try {
+                const response = await fetch(GLOBAL_STOCK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: "check_bulk",
+                        barcodes: [sku],
+                        stores: globalStockStores.map(s => s.code)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.results && data.results[sku]) {
+                    const res = data.results[sku];
+                    const mrp = res.mrp || 0;
+                    let grandTotalStock = 0;
+                    
+                    // Filter stores based on current user
+                    let storesToShow = globalStockStores;
+                    if (currentStore !== 'admin') {
+                        const userStoreCode = POS_STORE_MAP[currentStore];
+                        storesToShow = globalStockStores.filter(s => s.code === userStoreCode);
+                    }
+                    
+                    let html = `
+                        <div class="flex justify-between items-end px-2 pb-3 border-b border-gray-200 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                            <span class="w-2/3 text-left">Store Name</span>
+                            <span class="w-1/3 text-right leading-tight">Available<br>Stock</span>
+                        </div>
+                        <div class="flex flex-col gap-2 mt-3">`;
+                    
+                    storesToShow.forEach((store) => {
+                        const qty = res.stockByStore[store.code] || 0;
+                        grandTotalStock += qty;
+                        html += `
+                        <div class="flex justify-between items-center bg-white p-2.5 border border-gray-200 rounded-md text-xs font-semibold shadow-sm">
+                            <span class="text-gray-600 w-2/3 truncate">${store.name}</span>
+                            <span class="w-1/3 text-right text-sm ${qty > 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}">${qty}</span>
+                        </div>`;
+                    });
+                    
+                    if (currentStore === 'admin') {
+                        html += `
+                            <div class="mt-3 pt-4 border-t border-gray-200 flex justify-between items-center font-extrabold text-sm">
+                                <span class="text-slate-800 uppercase tracking-wide">TOTAL STOCK</span>
+                                <span class="text-blue-600 text-xl">${grandTotalStock}</span>
+                            </div>`;
+                    }
+                    
+                    html += `</div>`;
+                    
+                    content.innerHTML = html;
+                } else {
+                    content.innerHTML = '<p class="text-center text-red-500 text-sm font-bold py-4">No stock data found for this SKU.</p>';
+                }
+            } catch (error) {
+                content.innerHTML = '<p class="text-center text-red-500 text-sm font-bold py-4">Server Error! Failed to fetch data.</p>';
+            }
+        }
+
+        // --- PASSWORD CHANGE LOGIC ---
+        function toggleSettingsMenu() {
+            document.getElementById('settingsMenu').classList.toggle('hidden');
+        }
+
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('settingsMenu');
+            const icon = document.querySelector('.fa-ellipsis-vertical');
+            if (menu && !menu.contains(e.target) && e.target !== icon) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        function openChangePasswordModal() {
+            document.getElementById('settingsMenu').classList.add('hidden');
+            document.getElementById('oldPasswordInput').value = '';
+            document.getElementById('newPasswordInput').value = '';
+            document.getElementById('passwordErrorMsg').classList.add('hidden');
+            document.getElementById('passwordSuccessMsg').classList.add('hidden');
+            document.getElementById('changePasswordModal').classList.remove('hidden');
+        }
+
+        function closeChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.add('hidden');
+        }
+
+        async function submitPasswordChange() {
+            const oldPass = document.getElementById('oldPasswordInput').value;
+            const newPass = document.getElementById('newPasswordInput').value;
+            const btn = document.getElementById('changePassBtn');
+            const errorMsg = document.getElementById('passwordErrorMsg');
+            const successMsg = document.getElementById('passwordSuccessMsg');
+
+            if(!oldPass || !newPass) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
+            errorMsg.classList.add('hidden');
+
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ 
+                        action: 'changePassword', 
+                        store: currentStore, 
+                        oldPassword: oldPass, 
+                        newPassword: newPass 
+                    })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    successMsg.classList.remove('hidden');
+                    setTimeout(() => {
+                        logout();
+                    }, 1500);
+                } else {
+                    errorMsg.innerText = data.message || 'Old password Wrong';
+                    errorMsg.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.innerHTML = 'Changes';
+                }
+            } catch(e) {
+                errorMsg.innerText = 'Server Error!';
+                errorMsg.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerHTML = 'Changes';
+            }
+        }
+
+    </script>
 </body>
 </html>
