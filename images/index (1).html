@@ -1,0 +1,1037 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopify Image Pro Downloader</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 0 20px 20px 20px;
+      background: #f0f2f5;
+      margin: 0;
+      color: #333;
+    }
+    
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: #f0f2f5;
+      padding: 20px 0 15px 0;
+      margin-bottom: 5px;
+    }
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+
+    .header-controls {
+      background: white;
+      padding: 15px 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 15px;
+      align-items: center;
+      justify-content: space-between;
+      overflow-x: auto;
+      margin-bottom: 10px;
+    }
+    
+    .filter-group {
+      background: white;
+      padding: 15px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+      flex-grow: 1;
+      min-width: 250px;
+    }
+    
+    input[type="text"] {
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .url-input { width: 100%; flex-grow: 1; }
+    .filter-input { width: 100%; max-width: 400px; }
+    .zip-name-input { width: 180px; flex-shrink: 0; }
+    
+    select {
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      background: #fff;
+      cursor: pointer;
+    }
+    
+    button {
+      padding: 10px 18px;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-primary { background: #007bff; color: white; }
+    .btn-primary:hover { background: #0056b3; }
+    .btn-success { background: #28a745; color: white; }
+    .btn-success:hover { background: #218838; }
+    .btn-success:disabled { background: #a5d6a7; cursor: not-allowed; }
+    .btn-outline { background: #fff; color: #007bff; border: 1px solid #007bff; padding: 6px 10px; font-size: 12px; margin-top: 8px;}
+    .btn-outline:hover { background: #e7f3ff; }
+    
+    .action-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .select-all-label {
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+
+    #status {
+      font-weight: 600;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 6px;
+      background: #e9ecef;
+      display: inline-block;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 25px;
+    }
+    .image-box {
+      background: #fff;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .image-box img {
+      width: 100%;
+      height: 240px;
+      border-radius: 8px;
+      object-fit: contain;
+      background: #f8f9fa;
+      cursor: zoom-in;
+    }
+    
+    .product-info {
+      margin-top: 15px;
+      padding: 12px;
+      background: #f8f9fa;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .product-info.selected {
+      background: #e7f3ff;
+      border-color: #007bff;
+    }
+    .product-details {
+      text-align: left;
+      width: 85%;
+    }
+    .product-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: #222;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .product-meta {
+      font-size: 12px;
+      color: #6c757d;
+      margin-top: 4px;
+      margin-bottom: 4px;
+    }
+
+    /* Slider Modal styling */
+    .modal {
+      display: none;
+      position: fixed; 
+      z-index: 2000; 
+      left: 0; top: 0; width: 100%; height: 100%; 
+      background-color: rgba(0,0,0,0.9); 
+      backdrop-filter: blur(8px);
+    }
+    .modal-content {
+      margin: auto;
+      display: block;
+      max-width: 85%;
+      max-height: 85vh;
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .close-modal {
+      position: absolute;
+      top: 20px; right: 35px;
+      color: white; font-size: 40px; cursor: pointer;
+      z-index: 2005;
+    }
+    .nav-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      color: white;
+      font-size: 50px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 20px;
+      user-select: none;
+      z-index: 2005;
+      transition: 0.3s;
+    }
+    .nav-arrow:hover { color: #bbb; }
+    .left-arrow { left: 2%; }
+    .right-arrow { right: 2%; }
+    
+    #modalImageCounter {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    /* Specific Image Selector Modal */
+    .selector-content {
+      background: white;
+      margin: 5% auto;
+      padding: 20px;
+      width: 80%;
+      max-width: 800px;
+      border-radius: 12px;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    .selector-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    .selector-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 15px;
+    }
+    .selector-item {
+      position: relative;
+      cursor: pointer;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      padding: 5px;
+    }
+    .selector-item.selected {
+      border-color: #28a745;
+      background: #e8f5e9;
+    }
+    .selector-item img {
+      width: 100%;
+      height: 120px;
+      object-fit: contain;
+      border-radius: 6px;
+    }
+    .selector-item input {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      transform: scale(1.5);
+      cursor: pointer;
+    }
+
+    .load-more-container { text-align: center; margin: 30px 0; }
+    #loadMoreBtn { padding: 12px 30px; font-size: 16px; box-shadow: 0 4px 12px rgba(0,123,255,0.3); }
+  </style>
+</head>
+<body>
+
+  <div class="sticky-header">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <h2 style="margin: 0;">Shopify Product Downloader</h2>
+        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: bold; background: #e7f3ff; color: #007bff; padding: 5px 10px; border-radius: 6px; border: 1px solid #007bff; font-size: 14px;">
+          <input type="checkbox" id="myStoreCheck" style="cursor: pointer; transform: scale(1.2);">
+          My Store
+        </label>
+      </div>
+      <div id="status" style="margin-bottom: 0;">Ready</div>
+    </div>
+
+    <div class="header-controls">
+      <div class="input-group">
+  <input type="text" id="collectionUrl" class="url-input" placeholder="" onkeypress="if(event.key === 'Enter') loadProducts()">
+  <button class="btn-primary" onclick="loadProducts()">Fetch Products</button>
+</div>
+      
+      <div class="action-group" id="actionGroup" style="display: none;">
+        <select id="formatSelect">
+          <option value="original">Format: Original</option>
+          <option value="png">Format: PNG</option>
+          <option value="jpg">Format: JPG</option>
+          <option value="webp">Format: WEBP</option>
+        </select>
+        <input type="text" id="zipFileName" class="zip-name-input" placeholder="Custom ZIP Name">
+        <label class="select-all-label">
+          <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)" checked>
+          Select All
+        </label>
+        <button class="btn-success" id="downloadSelectedBtn" onclick="downloadSelectedAsZip()">Download Selected</button>
+      </div>
+    </div>
+    
+    <div class="filter-group" id="filterGroup" style="display: none;">
+      <strong>Filter:</strong>
+      <input type="text" id="filterGeneral" class="filter-input" placeholder="Search..." oninput="applyFilters()">
+      
+      <strong style="margin-left: 15px;">Currency:</strong>
+      <select id="currencySelect" onchange="changeCurrency()">
+        <option value="original">Original</option>
+        <option value="usd">USD ($)</option>
+        <option value="bdt">BDT (৳)</option>
+        <option value="pkr">PKR (Rs)</option>
+        <option value="inr">INR (₹)</option>
+        <option value="eur">EUR (€)</option>
+        <option value="gbp">GBP (£)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="gallery" id="gallery"></div>
+  
+  <div class="load-more-container">
+    <button id="loadMoreBtn" class="btn-primary" style="display: none;" onclick="loadMoreProducts()">Load More Products</button>
+  </div>
+
+  <div id="imageModal" class="modal" onclick="closeModal()">
+    <span class="close-modal">&times;</span>
+    <span class="nav-arrow left-arrow" onclick="navModal(-1, event)">&#10094;</span>
+    <img class="modal-content" id="modalImage" onclick="event.stopPropagation()">
+    <span class="nav-arrow right-arrow" onclick="navModal(1, event)">&#10095;</span>
+    <div id="modalImageCounter"></div>
+  </div>
+
+  <div id="imageSelectorModal" class="modal" onclick="closeSelectorModal()">
+    <div class="selector-content" onclick="event.stopPropagation()">
+      <div class="selector-header">
+        <h3 style="margin:0;">Select Specific Images</h3>
+        <button class="btn-primary" onclick="closeSelectorModal()">Save Selection</button>
+      </div>
+      <div class="selector-gallery" id="selectorGallery"></div>
+    </div>
+  </div>
+
+  <script>
+    let globalProductsData = [];
+    let currentPage = 1; 
+    let currentFetchMode = "collection"; 
+    let lastBackendCursor = null; 
+    let hasMoreBackendProducts = false;
+    
+    // Global Memory for Persistent Selection
+    let globalSelectedProducts = new Map();
+
+    // Live Currency Variables
+    let exchangeRates = null;
+    let activeCurrency = "original";
+    let baseStoreCurrency = "usd";
+    
+    // Slider variables
+    let currentSliderProductIndex = -1;
+    let currentSliderImageIndex = -1;
+    
+    // Specific Selector variable
+    let currentSelectingProductIndex = -1;
+
+    const cleanFileName = (name) => {
+      if (!name) return "Untitled";
+      return name.replace(/[<>:"/\\|?*]+/g, '').trim();
+    };
+
+    const getMasterImageUrl = (url) => url ? url.split("?")[0] : "";
+
+    // ========== SLIDER MODAL LOGIC ==========
+    function openModal(prodIdx, imgIdx) {
+      currentSliderProductIndex = prodIdx;
+      currentSliderImageIndex = imgIdx;
+      updateModalImage();
+      document.getElementById("imageModal").style.display = "block";
+    }
+
+    function closeModal() {
+      document.getElementById("imageModal").style.display = "none";
+    }
+
+    function updateModalImage() {
+      const prod = globalProductsData[currentSliderProductIndex];
+      if(!prod || !prod.images || prod.images.length === 0) return;
+      const imgUrl = getMasterImageUrl(prod.images[currentSliderImageIndex].src);
+      document.getElementById("modalImage").src = imgUrl;
+      document.getElementById("modalImageCounter").innerText = `Image ${currentSliderImageIndex + 1} of ${prod.images.length}`;
+    }
+
+    function navModal(direction, event) {
+      if(event) event.stopPropagation();
+      const prod = globalProductsData[currentSliderProductIndex];
+      if(!prod || !prod.images) return;
+      
+      currentSliderImageIndex += direction;
+      if (currentSliderImageIndex < 0) currentSliderImageIndex = prod.images.length - 1;
+      if (currentSliderImageIndex >= prod.images.length) currentSliderImageIndex = 0;
+      updateModalImage();
+    }
+
+    // Keyboard support for Slider
+    document.addEventListener('keydown', function(event) {
+      if (document.getElementById('imageModal').style.display === 'block') {
+        if (event.key === 'ArrowLeft') navModal(-1);
+        if (event.key === 'ArrowRight') navModal(1);
+        if (event.key === 'Escape') closeModal();
+      }
+    });
+
+    // ========== SPECIFIC IMAGE SELECTOR LOGIC ==========
+    function openSelectorModal(globalIndex, event) {
+      event.stopPropagation();
+      currentSelectingProductIndex = globalIndex;
+      const prod = globalProductsData[globalIndex];
+      const gallery = document.getElementById("selectorGallery");
+      gallery.innerHTML = "";
+      
+      if(prod.images) {
+        prod.images.forEach((img, idx) => {
+          const isSelected = prod.selectedImageIndices.includes(idx);
+          const thumb = getMasterImageUrl(img.src);
+          const div = document.createElement("div");
+          div.className = `selector-item ${isSelected ? 'selected' : ''}`;
+          div.onclick = () => toggleSpecificImage(idx, div);
+          div.innerHTML = `
+            <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSpecificImage(${idx}, this.parentElement)">
+            <img src="${thumb}">
+          `;
+          gallery.appendChild(div);
+        });
+      }
+      document.getElementById("imageSelectorModal").style.display = "block";
+    }
+
+    function closeSelectorModal() {
+      document.getElementById("imageSelectorModal").style.display = "none";
+      renderApp(); // re-render to update the image count badge
+    }
+
+    function toggleSpecificImage(imgIdx, itemDiv) {
+      const prod = globalProductsData[currentSelectingProductIndex];
+      const cb = itemDiv.querySelector('input');
+      
+      // Toggle logic
+      if(prod.selectedImageIndices.includes(imgIdx)) {
+        prod.selectedImageIndices = prod.selectedImageIndices.filter(i => i !== imgIdx);
+        itemDiv.classList.remove('selected');
+        cb.checked = false;
+      } else {
+        prod.selectedImageIndices.push(imgIdx);
+        itemDiv.classList.add('selected');
+        cb.checked = true;
+      }
+      
+      // Update the global map if this product is selected
+      if (globalSelectedProducts.has(prod.id)) {
+        globalSelectedProducts.set(prod.id, prod);
+      }
+    }
+
+
+    // ========== FETCH & PROCESS LOGIC ==========
+    async function fetchImageAsBlob(imageUrl, retries = 3) {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const response = await fetch(imageUrl, { mode: 'cors' });
+          if (!response.ok) throw new Error("Fetch failed");
+          return await response.blob();
+        } catch (error) {
+          if (i === retries - 1) throw error;
+          await new Promise(res => setTimeout(res, 1000 * (i + 1))); 
+        }
+      }
+    }
+
+    async function convertImageBlob(blob, format) {
+      if (format === 'original') {
+        const ext = blob.type.split('/')[1]?.replace('jpeg', 'jpg') || 'png';
+        return { blob, ext };
+      }
+      const mimeType = format === 'jpg' ? 'image/jpeg' : `image/${format}`;
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(blob);
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width; canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (format === 'jpg') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob((newBlob) => {
+            URL.revokeObjectURL(url);
+            if (newBlob) resolve({ blob: newBlob, ext: format });
+            else reject(new Error("Canvas conversion failed"));
+          }, mimeType, 0.95);
+        };
+        img.onerror = () => reject(new Error("Image processing failed"));
+        img.src = url;
+      });
+    }
+
+    function parseShopifyUrl(rawUrl) {
+      try {
+        const urlObj = new URL(rawUrl);
+        let baseUrl = urlObj.origin;
+        let mode = "collection";
+        let handleOrQuery = "";
+
+        if (urlObj.pathname.includes('/products/')) {
+          mode = "product";
+          handleOrQuery = urlObj.pathname.split('/products/')[1].split('/')[0];
+        } else if (urlObj.pathname.includes('/search') || urlObj.searchParams.has('q')) {
+          mode = "search";
+          handleOrQuery = urlObj.searchParams.get('q');
+        } else if (urlObj.pathname.includes('/collections/')) {
+          handleOrQuery = urlObj.pathname.split('/collections/')[1].split('/')[0];
+        }
+        return { baseUrl, mode, handleOrQuery };
+      } catch (e) { return null; }
+    }
+
+    async function fetchProductsData(page) {
+      const urlInput = document.getElementById("collectionUrl").value.trim();
+      const parsed = parseShopifyUrl(urlInput);
+      if (!parsed) throw new Error("Invalid URL format.");
+
+      currentFetchMode = parsed.mode;
+      const { baseUrl, mode, handleOrQuery } = parsed;
+
+      const isMyStoreChecked = document.getElementById("myStoreCheck")?.checked;
+      if (isMyStoreChecked) {
+        const WEB_APP_URL = "https://inventory-backend-rwfi.onrender.com/api";
+        const authToken = localStorage.getItem("authToken");
+        if (!authToken) {
+          throw new Error("Please log in to the Store Manager before using My Store.");
+        }
+        const authHeaders = { Authorization: `Bearer ${authToken}` };
+        let matchedCollectionId = null;
+        
+        if (mode === "collection" && handleOrQuery) {
+            const initRes = await fetch(`${WEB_APP_URL}?action=getInitialData`, {
+              headers: authHeaders
+            });
+            const initData = await initRes.json();
+            if (!initRes.ok || initData.status !== 'success') {
+              throw new Error(initData.message || "Failed to load My Store collections.");
+            }
+            if (initData.collections) {
+                const col = initData.collections.find(c => 
+                    c.id === handleOrQuery || 
+                    (c.handle && c.handle.toLowerCase() === handleOrQuery.toLowerCase()) ||
+                    c.title.toLowerCase().replace(/\s+/g, '-').includes(handleOrQuery.toLowerCase())
+                );
+                if (col) matchedCollectionId = col.id;
+            }
+        }
+
+        let allBackendProducts = [];
+        let currentCursor = (page > 1) ? lastBackendCursor : null;
+        let hasNext = true;
+
+        // Loop to fetch 250 products (5 batches of 50) without crashing the backend
+        while (allBackendProducts.length < 250 && hasNext) {
+            let url = `${WEB_APP_URL}?action=searchProducts&sortKey=CREATED_AT&reverse=true`;
+            if (matchedCollectionId) {
+                url += `&collectionId=${encodeURIComponent(matchedCollectionId)}`;
+            } else if (handleOrQuery) {
+                url += `&query=${encodeURIComponent(handleOrQuery)}`;
+            }
+            
+            if (currentCursor) {
+                url += `&cursor=${encodeURIComponent(currentCursor)}`;
+            }
+
+            const response = await fetch(url, { headers: authHeaders });
+            const data = await response.json();
+
+            if (response.ok && data.status === 'success') {
+                if (!data.products || data.products.length === 0) break;
+                
+                allBackendProducts = allBackendProducts.concat(data.products);
+                
+                if (currentCursor === data.pageInfo?.endCursor) break;
+                
+                currentCursor = data.pageInfo?.endCursor || null;
+                hasNext = data.pageInfo?.hasNextPage || false;
+                
+                document.getElementById("status").innerText = `Connecting to My Store... (${allBackendProducts.length} items loaded)`;
+            } else {
+                if (allBackendProducts.length === 0) {
+                  throw new Error(data.message || "Backend search failed.");
+                }
+                break;
+            }
+        }
+
+        lastBackendCursor = currentCursor;
+        hasMoreBackendProducts = hasNext;
+
+        return allBackendProducts.map(p => ({
+            id: p.id,
+            title: p.title,
+            vendor: p.vendor,
+            product_type: p.type || p.product_type,
+            variants: p.variants || [],
+            images: p.images && p.images.length > 0 
+                ? p.images.map(img => ({ src: img })) 
+                : (p.image ? [{ src: p.image }] : [])
+        }));
+      }
+
+      if (mode === "product") {
+        const res = await fetch(`${baseUrl}/products/${handleOrQuery}.json`);
+        if (!res.ok) throw new Error("Product not found.");
+        const data = await res.json();
+        return [data.product];
+      } 
+      else if (mode === "search") {
+        // Updated Search Logic with Fallback
+        let searchProducts = [];
+        try {
+          const suggestUrl = `${baseUrl}/search/suggest.json?q=${encodeURIComponent(handleOrQuery)}&resources[type]=product&resources[limit]=250`;
+          const res = await fetch(suggestUrl);
+          if (res.ok) {
+            const data = await res.json();
+            searchProducts = data.resources?.results?.products || [];
+          }
+        } catch(e) { console.warn("Suggest API failed, trying fallback..."); }
+        
+        // Fallback: If search fails or blocked, fetch all general products and filter locally
+        if(searchProducts.length === 0) {
+            const fallbackRes = await fetch(`${baseUrl}/products.json?limit=250`);
+            if(!fallbackRes.ok) throw new Error("Search failed and Fallback blocked.");
+            const fallbackData = await fallbackRes.json();
+            const keyword = handleOrQuery.toLowerCase();
+            return fallbackData.products.filter(p => 
+                p.title.toLowerCase().includes(keyword) || 
+                (p.vendor && p.vendor.toLowerCase().includes(keyword)) ||
+                (p.product_type && p.product_type.toLowerCase().includes(keyword)) ||
+                (p.tags && p.tags.some(t => t.toLowerCase().includes(keyword))) ||
+                (p.variants && p.variants.length > 0 && p.variants[0].sku && p.variants[0].sku.toLowerCase().includes(keyword))
+            );
+        } else {
+            const fetchPromises = searchProducts.map(sp => 
+                fetch(`${baseUrl}/products/${sp.handle}.json`).then(r => r.ok ? r.json() : null)
+            );
+            const results = await Promise.all(fetchPromises);
+            return results.filter(r => r && r.product).map(r => r.product);
+        }
+      } 
+      else {
+        const jsonUrl = handleOrQuery 
+          ? `${baseUrl}/collections/${handleOrQuery}/products.json?limit=250&page=${page}`
+          : `${urlInput.replace(/\/$/, "")}/products.json?limit=250&page=${page}`;
+        const response = await fetch(jsonUrl);
+        if (!response.ok) throw new Error("Could not fetch product data.");
+        const data = await response.json();
+        return data.products;
+      }
+    }
+    
+    // Initialize specific variables for each fetched product
+    function initializeProductData(products) {
+        return products.map(p => {
+            if(p.images) {
+                // By default select all images
+                p.selectedImageIndices = p.images.map((_, idx) => idx);
+            } else {
+                p.selectedImageIndices = [];
+            }
+            return p;
+        });
+    }
+
+    async function loadProducts() {
+      const urlInput = document.getElementById("collectionUrl").value.trim();
+      const status = document.getElementById("status");
+      if (!urlInput) { status.innerText = "Error: URL is required."; return; }
+
+      currentPage = 1;
+      lastBackendCursor = null;
+      hasMoreBackendProducts = false;
+      globalProductsData = [];
+      globalSelectedProducts.clear(); // Eta purono link er kora selection clear korbe
+      document.getElementById("gallery").innerHTML = "";
+      updateDownloadButton(); // Eta button er count theke purono data reset korbe
+      document.getElementById("actionGroup").style.display = "none";
+      document.getElementById("filterGroup").style.display = "none";
+      document.getElementById("loadMoreBtn").style.display = "none";
+      document.getElementById("selectAllCheckbox").checked = true;
+      document.getElementById("filterGeneral").value = "";
+      
+      activeCurrency = "original";
+      document.getElementById("currencySelect").value = "original";
+
+      status.innerText = "Connecting to Shopify...";
+
+      try {
+        let products = await fetchProductsData(currentPage);
+        if (products.length === 0) {
+          status.innerText = "No products found for this link."; return;
+        }
+
+        globalProductsData = initializeProductData(products);
+        renderApp(); 
+        
+        status.innerText = `Loaded ${globalProductsData.length} products.`;
+        document.getElementById("actionGroup").style.display = "flex";
+        document.getElementById("filterGroup").style.display = "flex";
+
+        const isMyStoreChecked = document.getElementById("myStoreCheck")?.checked;
+        if (isMyStoreChecked) {
+          if (hasMoreBackendProducts) {
+            document.getElementById("loadMoreBtn").style.display = "inline-block";
+          }
+        } else if (currentFetchMode === "collection" && products.length === 250) {
+          document.getElementById("loadMoreBtn").style.display = "inline-block";
+        }
+      } catch (error) {
+        status.innerText = `Error: ${error.message || "Please check the URL and your connection."}`;
+        console.error(error);
+      }
+    }
+
+    async function loadMoreProducts() {
+      const loadMoreBtn = document.getElementById("loadMoreBtn");
+      const status = document.getElementById("status");
+      loadMoreBtn.innerText = "Loading...";
+      loadMoreBtn.disabled = true;
+      currentPage++;
+
+      try {
+        let newProducts = await fetchProductsData(currentPage);
+        if (newProducts.length > 0) {
+          newProducts = initializeProductData(newProducts);
+          globalProductsData = globalProductsData.concat(newProducts);
+          renderApp(); 
+          status.innerText = `Loaded ${globalProductsData.length} products total.`;
+        }
+        const isMyStoreChecked = document.getElementById("myStoreCheck")?.checked;
+        if (isMyStoreChecked) {
+          if (!hasMoreBackendProducts) {
+            loadMoreBtn.style.display = "none"; 
+          } else {
+            loadMoreBtn.innerText = "Load More Products";
+            loadMoreBtn.disabled = false;
+          }
+        } else {
+          if (newProducts.length < 250) {
+            loadMoreBtn.style.display = "none"; 
+          } else {
+            loadMoreBtn.innerText = "Load More Products";
+            loadMoreBtn.disabled = false;
+          }
+        }
+      } catch (error) {
+        status.innerText = "Error loading more products.";
+        loadMoreBtn.innerText = "Load More Products";
+        loadMoreBtn.disabled = false;
+      }
+    }
+
+    function applyFilters() { renderApp(); }
+
+    async function changeCurrency() {
+      const select = document.getElementById("currencySelect");
+      activeCurrency = select.value;
+      
+      if (activeCurrency === "original") {
+        renderApp();
+        return;
+      }
+
+      const status = document.getElementById("status");
+      const originalStatus = status.innerText;
+      status.innerText = "Fetching live exchange rates...";
+      
+      try {
+        const shopUrl = document.getElementById("collectionUrl").value.toLowerCase();
+        baseStoreCurrency = shopUrl.includes(".pk") ? "pkr" : "usd";
+        
+        if (!exchangeRates || !exchangeRates[baseStoreCurrency]) {
+          const res = await fetch(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${baseStoreCurrency}.json`);
+          exchangeRates = await res.json();
+        }
+        status.innerText = originalStatus;
+        renderApp();
+      } catch (error) {
+        status.innerText = "Failed to load exchange rates.";
+        console.error(error);
+      }
+    }
+    
+    function getCurrencySymbol(curr) {
+      const symbols = { usd: "$", bdt: "৳", pkr: "rs ", inr: "₹", eur: "€", gbp: "£" };
+      return symbols[curr] || curr.toUpperCase();
+    }
+
+    function renderApp() {
+      const gallery = document.getElementById("gallery");
+      gallery.innerHTML = "";
+      const isSelectAllChecked = document.getElementById("selectAllCheckbox").checked;
+      const query = document.getElementById("filterGeneral").value.toLowerCase();
+
+      globalProductsData.forEach((product, globalIndex) => {
+        // Single Search Filter matching Title, Vendor, Type or SKU
+        if (query) {
+            const matchTitle = product.title && product.title.toLowerCase().includes(query);
+            const matchVendor = product.vendor && product.vendor.toLowerCase().includes(query);
+            const matchType = product.product_type && product.product_type.toLowerCase().includes(query);
+            const matchSku = product.variants && product.variants.length > 0 && product.variants[0].sku && product.variants[0].sku.toLowerCase().includes(query);
+            
+            if (!matchTitle && !matchVendor && !matchType && !matchSku) return;
+        }
+
+        if (product.images && product.images.length > 0) {
+          // Restore specific image selections if it was saved before
+          if (globalSelectedProducts.has(product.id)) {
+            product.selectedImageIndices = globalSelectedProducts.get(product.id).selectedImageIndices;
+          }
+
+          const thumb = getMasterImageUrl(product.images[0].src);
+          const box = document.createElement("div");
+          box.className = "image-box";
+          
+          // Check if it's already in our global selected map, or if select all is checked
+          const isSelected = globalSelectedProducts.has(product.id) || isSelectAllChecked;
+          const checkedAttr = isSelected ? "checked" : "";
+          const selectedClass = isSelected ? "selected" : "";
+          const vendorText = product.vendor ? ` | ${product.vendor}` : "";
+          const selectedCount = product.selectedImageIndices.length;
+          
+          // If select all is checked, ensure it's added to the global map
+          if (isSelectAllChecked) {
+             globalSelectedProducts.set(product.id, product);
+          }
+
+          let priceDisplay = "";
+          let skuText = "N/A";
+          if (product.variants && product.variants.length > 0) {
+            skuText = product.variants[0].sku || "N/A";
+            let priceVal = parseFloat(product.variants[0].price);
+            
+            if (activeCurrency === "original") {
+              const shopUrl = document.getElementById("collectionUrl").value.toLowerCase();
+              if (shopUrl.includes(".pk")) {
+                priceDisplay = `${priceVal} rs`;
+              } else {
+                priceDisplay = `$${priceVal}`;
+              }
+            } else {
+              if (exchangeRates && exchangeRates[baseStoreCurrency] && exchangeRates[baseStoreCurrency][activeCurrency]) {
+                const rate = exchangeRates[baseStoreCurrency][activeCurrency];
+                const convertedPrice = (priceVal * rate).toFixed(2);
+                priceDisplay = `${getCurrencySymbol(activeCurrency)}${convertedPrice}`;
+              } else {
+                priceDisplay = `Loading...`;
+              }
+            }
+          }
+          
+          const typeText = product.product_type || "N/A";
+
+          box.innerHTML = `
+            <img src="${thumb}" loading="lazy" onclick="openModal(${globalIndex}, 0)">
+            <div class="product-info ${selectedClass}" onclick="toggleSingleSelection(${globalIndex}, this)">
+              <div class="product-details">
+                <div class="product-title" title="${product.title}">${product.title}</div>
+                <div class="product-meta">
+                  Selected: <b>${selectedCount}/${product.images.length}</b> images ${vendorText}
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <button class="btn-outline" onclick="openSelectorModal(${globalIndex}, event)">Select Specific Images</button>
+                  <span style="font-weight: 600; font-size: 12px; color: #28a745; margin-top: 8px; white-space: nowrap;">${priceDisplay}</span>
+                </div>
+                <div style="font-size: 11px; color: #6c757d; margin-top: 8px;">
+                  Type: <b>${typeText}</b> | SKU: <b>${skuText}</b>
+                </div>
+              </div>
+              <input type="checkbox" class="product-cb" value="${globalIndex}" ${checkedAttr} onclick="event.stopPropagation(); updateDownloadButton()">
+            </div>
+          `;
+          gallery.appendChild(box);
+        }
+      });
+      updateDownloadButton();
+    }
+
+    function toggleSingleSelection(index, infoDiv) {
+      const cb = infoDiv.querySelector('.product-cb');
+      cb.checked = !cb.checked;
+      infoDiv.classList.toggle('selected', cb.checked);
+      
+      const product = globalProductsData[index];
+      if (cb.checked) {
+        globalSelectedProducts.set(product.id, product);
+      } else {
+        globalSelectedProducts.delete(product.id);
+      }
+      
+      updateDownloadButton();
+    }
+
+    window.toggleSelectAll = function(checkbox) {
+      const checkboxes = document.querySelectorAll(".product-cb");
+      const infoDivs = document.querySelectorAll(".product-info");
+      checkboxes.forEach((cb, i) => {
+        cb.checked = checkbox.checked;
+        infoDivs[i].classList.toggle('selected', checkbox.checked);
+        
+        const product = globalProductsData[cb.value];
+        if (checkbox.checked) {
+          globalSelectedProducts.set(product.id, product);
+        } else {
+          globalSelectedProducts.delete(product.id);
+        }
+      });
+      updateDownloadButton();
+    }
+
+    function updateDownloadButton() {
+      const checkedCount = globalSelectedProducts.size;
+      const btn = document.getElementById("downloadSelectedBtn");
+      btn.innerText = `Download (${checkedCount}) ZIP`;
+      btn.disabled = checkedCount === 0;
+    }
+
+    function generateUniqueFolderName(product, folderTracker) {
+      const baseName = cleanFileName(product.title);
+      let finalName = baseName;
+      if (folderTracker.has(baseName)) {
+        const sku = product.variants && product.variants.length > 0 ? cleanFileName(product.variants[0].sku) : null;
+        if (sku && !folderTracker.has(`${baseName} - ${sku}`)) finalName = `${baseName} - ${sku}`;
+        else {
+          let count = folderTracker.get(baseName) + 1;
+          while (folderTracker.has(`${baseName} - ${count}`)) count++;
+          finalName = `${baseName} - ${count}`;
+          folderTracker.set(baseName, count); 
+        }
+      } else folderTracker.set(baseName, 1);
+      folderTracker.set(finalName, 1);
+      return finalName;
+    }
+
+    async function downloadSelectedAsZip() {
+      const status = document.getElementById("status");
+      const downloadBtn = document.getElementById("downloadSelectedBtn");
+      const format = document.getElementById("formatSelect").value;
+      const customZipNameInput = document.getElementById("zipFileName").value.trim();
+      
+      // Fetch selected products from the global map instead of just DOM checkboxes
+      const selectedProducts = Array.from(globalSelectedProducts.values());
+      downloadBtn.disabled = true;
+      const zip = new JSZip();
+      
+      // Calculate total specific images selected
+      let totalImagesToDownload = selectedProducts.reduce((sum, p) => sum + p.selectedImageIndices.length, 0);
+      
+      if(totalImagesToDownload === 0) {
+          status.innerText = "No specific images selected to download!";
+          downloadBtn.disabled = false;
+          return;
+      }
+
+      let processedCount = 0;
+      const folderTracker = new Map();
+
+      try {
+        for (const product of selectedProducts) {
+          if (!product.images || product.selectedImageIndices.length === 0) continue;
+
+          const folderName = generateUniqueFolderName(product, folderTracker);
+          const folder = zip.folder(folderName);
+          
+          for (let i = 0; i < product.images.length; i++) {
+            // Check if this image index was selected by user
+            if(!product.selectedImageIndices.includes(i)) continue;
+
+            const url = getMasterImageUrl(product.images[i].src);
+            try {
+              const rawBlob = await fetchImageAsBlob(url);
+              const { blob: finalBlob, ext } = await convertImageBlob(rawBlob, format);
+              const filename = `${folderName}-${i + 1}.${ext}`;
+              folder.file(filename, finalBlob);
+            } catch (err) {
+              console.error(`Failed to process ${url}`, err);
+            }
+
+            processedCount++;
+            status.innerText = `Processing: ${processedCount} / ${totalImagesToDownload} images...`;
+          }
+        }
+
+        status.innerText = "Compressing ZIP file... Please wait.";
+        const content = await zip.generateAsync({ type: "blob" });
+        
+        const finalZipName = customZipNameInput 
+          ? `${cleanFileName(customZipNameInput)}.zip` 
+          : `Shopify_Bulk_Images_${Date.now()}.zip`;
+          
+        saveAs(content, finalZipName);
+        status.innerText = "Download Complete!";
+      } catch (error) {
+        status.innerText = "An error occurred during ZIP generation.";
+        console.error(error);
+      } finally {
+        downloadBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
