@@ -367,7 +367,10 @@
     let globalProductsData = [];
     let currentPage = 1; 
     let currentFetchMode = "collection"; 
-    let lastBackendCursor = null; 
+    let lastBackendCursors = {
+      active: { cursor: null, hasNext: true },
+      draft: { cursor: null, hasNext: true }
+    };
     let hasMoreBackendProducts = false;
     
     // Global Memory for Persistent Selection
@@ -581,48 +584,59 @@
         }
 
         let allBackendProducts = [];
-        let currentCursor = (page > 1) ? lastBackendCursor : null;
-        let hasNext = true;
+        for (const productStatus of ["active", "draft"]) {
+            const previousPage = lastBackendCursors[productStatus];
+            let currentCursor = page > 1 ? previousPage.cursor : null;
+            let hasNext = page > 1 ? previousPage.hasNext : true;
+            let statusProducts = [];
 
-        // Loop to fetch 250 products (5 batches of 50) without crashing the backend
-        while (allBackendProducts.length < 250 && hasNext) {
-            let url = `${WEB_APP_URL}?action=searchProducts&sortKey=CREATED_AT&reverse=true`;
-            if (matchedCollectionId) {
-                url += `&collectionId=${encodeURIComponent(matchedCollectionId)}`;
-            } else if (handleOrQuery) {
-                url += `&query=${encodeURIComponent(handleOrQuery)}`;
-            }
-            
-            if (currentCursor) {
-                url += `&cursor=${encodeURIComponent(currentCursor)}`;
-            }
-
-            const response = await fetch(url, { headers: authHeaders });
-            const data = await response.json();
-
-            if (response.ok && data.status === 'success') {
-                if (!data.products || data.products.length === 0) break;
-                
-                allBackendProducts = allBackendProducts.concat(data.products);
-                
-                if (currentCursor === data.pageInfo?.endCursor) break;
-                
-                currentCursor = data.pageInfo?.endCursor || null;
-                hasNext = data.pageInfo?.hasNextPage || false;
-                
-                document.getElementById("status").innerText = `Connecting to My Store... (${allBackendProducts.length} items loaded)`;
-            } else {
-                if (allBackendProducts.length === 0) {
-                  throw new Error(data.message || "Backend search failed.");
+            while (statusProducts.length < 250 && hasNext) {
+                let url = `${WEB_APP_URL}?action=searchProducts&sortKey=CREATED_AT&reverse=true&status=${productStatus}`;
+                if (matchedCollectionId) {
+                    url += `&collectionId=${encodeURIComponent(matchedCollectionId)}`;
+                } else if (handleOrQuery) {
+                    url += `&query=${encodeURIComponent(handleOrQuery)}`;
                 }
-                break;
+
+                if (currentCursor) {
+                    url += `&cursor=${encodeURIComponent(currentCursor)}`;
+                }
+
+                const response = await fetch(url, { headers: authHeaders });
+                const data = await response.json();
+
+                if (!response.ok || data.status !== 'success') {
+                    throw new Error(data.message || `Backend search failed for ${productStatus} products.`);
+                }
+
+                if (!data.products || data.products.length === 0) {
+                    hasNext = false;
+                    break;
+                }
+
+                statusProducts = statusProducts.concat(data.products);
+
+                const endCursor = data.pageInfo?.endCursor;
+                if (!endCursor || currentCursor === endCursor) {
+                    hasNext = false;
+                    break;
+                }
+
+                currentCursor = endCursor;
+                hasNext = data.pageInfo?.hasNextPage || false;
             }
+
+            lastBackendCursors[productStatus] = { cursor: currentCursor, hasNext };
+            allBackendProducts = allBackendProducts.concat(statusProducts);
+            document.getElementById("status").innerText =
+                `Connecting to My Store... (${allBackendProducts.length} items loaded)`;
         }
 
-        lastBackendCursor = currentCursor;
-        hasMoreBackendProducts = hasNext;
+        hasMoreBackendProducts = Object.values(lastBackendCursors).some(pageInfo => pageInfo.hasNext);
+        const uniqueProducts = new Map();
+        allBackendProducts.forEach(product => uniqueProducts.set(product.id, product));
 
-        return allBackendProducts.map(p => ({
+        return Array.from(uniqueProducts.values()).map(p => ({
             id: p.id,
             title: p.title,
             vendor: p.vendor,
@@ -703,7 +717,10 @@
       if (!urlInput) { status.innerText = "Error: URL is required."; return; }
 
       currentPage = 1;
-      lastBackendCursor = null;
+      lastBackendCursors = {
+        active: { cursor: null, hasNext: true },
+        draft: { cursor: null, hasNext: true }
+      };
       hasMoreBackendProducts = false;
       globalProductsData = [];
       globalSelectedProducts.clear(); // Eta purono link er kora selection clear korbe
