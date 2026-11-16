@@ -725,7 +725,10 @@
         vendor: p.vendor,
         product_type: p.type || p.product_type,
         variants: p.variants || [],
-        status: p._status || p.status || "",
+        status: (() => {
+          const own = String(p.status ?? p.productStatus ?? "").toLowerCase();
+          return ["active", "draft", "archived"].includes(own) ? own : (p._status || "");
+        })(),
         images
       };
     }
@@ -741,8 +744,13 @@
         raw = await loadBackendBatch(1);
       }
 
+      // Same product duplicate hole: backend nijer status dile seta-i final, na hole prothom (active) ta thakbe
+      const hasOwnStatus = (p) => ["active", "draft", "archived"].includes(String(p.status ?? p.productStatus ?? "").toLowerCase());
       const map = new Map();
-      raw.forEach(p => map.set(p.id, p));
+      raw.forEach(p => {
+        const old = map.get(p.id);
+        if (!old || (!hasOwnStatus(old) && hasOwnStatus(p))) map.set(p.id, p);
+      });
       return Array.from(map.values()).map(normalizeBackendProduct);
     }
 
@@ -983,7 +991,7 @@
         const vendorText = product.vendor ? ` | ${esc(product.vendor)}` : "";
         const skuText = esc(product.variants?.[0]?.sku || "N/A");
         const typeText = esc(product.product_type || "N/A");
-        const badge = product.status ? `<span class="badge ${esc(product.status)}">${product.status === "draft" ? "Draft" : "Active"}</span>` : "";
+        const badge = product.status ? `<span class="badge ${esc(product.status)}">${product.status.charAt(0).toUpperCase() + product.status.slice(1)}</span>` : "";
 
         const box = document.createElement("div");
         box.className = "image-box";
